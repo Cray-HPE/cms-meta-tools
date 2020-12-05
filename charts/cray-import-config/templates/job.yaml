@@ -1,0 +1,96 @@
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ .Values.import_job.CF_IMPORT_PRODUCT_NAME }}-config-import-{{ .Values.import_job.CF_IMPORT_PRODUCT_VERSION }}
+spec:
+  template:
+    spec:
+      serviceAccountName: cray-product-catalog
+      restartPolicy: Never
+      {{- if .Values.import_job.nodeSelector }}
+      nodeSelector:
+{{ toYaml .Values.import_job.nodeSelector | indent 8 }}
+      {{- end }}
+      volumes:
+      - emptyDir:
+          medium: Memory
+        name: catalog-overlay
+      - emptyDir:
+          medium: Memory
+        name: config-overlay
+      {{- if .Values.import_job.additionalVolumes }}
+{{ toYaml .Values.import_job.additionalVolumes | indent 6 }}
+      {{- end }}
+      {{- if .Values.import_job.initContainers }}
+      initContainers:
+{{ toYaml .Values.import_job.initContainers | indent 6 }}
+      {{- end }}
+      containers:
+      - name: update-catalog
+        image: "{{ .Values.catalog.image.registry }}/{{ .Values.catalog.image.repo }}/{{ .Values.catalog.image.name }}:{{ .Values.catalog.image.tag }}"
+        imagePullPolicy: IfNotPresent
+        volumeMounts:
+        - mountPath: /results
+          name: catalog-overlay
+        env:
+        - name: PRODUCT
+          value: "{{ .Values.import_job.CF_IMPORT_PRODUCT_NAME }}"
+        - name: PRODUCT_VERSION
+          value: "{{ .Values.import_job.CF_IMPORT_PRODUCT_VERSION }}"
+        - name: CONFIG_MAP
+          value: "{{ .Values.catalog.config_map }}"
+        - name: CONFIG_MAP_NAMESPACE
+          value: "{{ .Values.catalog.config_map_namespace }}"
+        - name: YAML_CONTENT
+          value: /results/records.yaml
+        command: ["/bin/ash"]
+        args:
+        - -c
+        - "while [ ! -f ${YAML_CONTENT} ]; do sleep 2; echo 'Waiting for '${YAML_CONTENT}; done; /catalog_update.py"
+      - name: content-import
+        env:
+        - name: CF_IMPORT_PRODUCT_NAME
+          value: "{{ .Values.import_job.CF_IMPORT_PRODUCT_NAME }}"
+        - name: CF_IMPORT_PRODUCT_VERSION
+          value: "{{ .Values.import_job.CF_IMPORT_PRODUCT_VERSION }}"
+        - name: CF_IMPORT_GITEA_URL
+          value: "{{ .Values.import_job.CF_IMPORT_GITEA_URL }}"
+        - name: CF_IMPORT_GITEA_ORG
+          value: "{{ .Values.import_job.CF_IMPORT_GITEA_ORG }}"
+        - name: CF_IMPORT_GITEA_REPO
+          value: "{{ .Values.import_job.CF_IMPORT_GITEA_REPO }}"
+        - name: CF_IMPORT_BASE_BRANCH
+          value: "{{ .Values.import_job.CF_IMPORT_BASE_BRANCH }}"
+        - name: CF_IMPORT_CONTENT
+          value: "{{ .Values.import_job.CF_IMPORT_CONTENT }}"
+        - name: CF_IMPORT_PROTECT_BRANCH
+          value: "{{ .Values.import_job.CF_IMPORT_PROTECT_BRANCH }}"
+        - name: CF_IMPORT_GITEA_USER
+          valueFrom:
+            secretKeyRef:
+              name: "{{ .Values.import_job.CF_IMPORT_GITEA_USER_SECRET }}"
+              key: "{{ .Values.import_job.CF_IMPORT_GITEA_USER_SECRET_KEY }}"
+        - name: CF_IMPORT_GITEA_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: "{{ .Values.import_job.CF_IMPORT_GITEA_PASSWORD_SECRET }}"
+              key: "{{ .Values.import_job.CF_IMPORT_GITEA_PASSWORD_SECRET_KEY }}"
+        image: "{{ .Values.config_image.registry }}/{{ .Values.config_image.repo }}/{{ .Values.config_image.name }}:{{ .Values.config_image.tag }}"
+        imagePullPolicy: IfNotPresent
+        volumeMounts:
+        - mountPath: /results
+          name: catalog-overlay
+        - mountPath: /shared
+          name: config-overlay
+        resources:
+          limits:
+            cpu: "2"
+            memory: 256Mi
+          requests:
+            cpu: 100m
+            memory: 64Mi
+        {{- if .Values.import_job.additionalContainers }}
+{{ toYaml .Values.import_job.additionalContainers | indent 6 }}
+        {{- end }}
+

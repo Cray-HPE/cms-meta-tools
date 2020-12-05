@@ -1,0 +1,49 @@
+# Copyright 2020 Hewlett Packard Enterprise Development LP
+
+# Full image including repo, e.g. dtr.dev.cray.com/cray/import-image:1.2.3
+#                                         ^         ^         ^        ^
+#                                         |         |         |        |
+#                    ['import_image'] [registry]  [repo]    [name]   [tag]
+
+# Docker image that will be used in the `import_job` (settings below). This image
+# should use the cray-ims-load-artifacts image as its base.
+import_image:
+  registry: "dtr.dev.cray.com"
+  repo: cray
+  name: ""
+  tag: ""
+
+# Docker image that will update the product catalog with results of the import
+# of images and recipes. Specifies the product catalog ConfigMap as well.
+catalog:
+  image:
+    registry: "dtr.dev.cray.com"
+    repo: cray
+    name: cray-product-catalog-update
+    tag: "0.0.1-20201028184555_30b896c"
+
+  config_map: cray-product-catalog
+  config_map_namespace: services
+
+
+# Settings for the K8S job that uses the `import_image`
+import_job:
+
+  name: image-recipe-import
+  PRODUCT_NAME: ""
+  PRODUCT_VERSION: ""
+
+  # cray-ims-load-artifacts image variables, for more information see
+  # https://stash.us.cray.com/projects/SCMS/repos/ims-load-artifacts/browse/README.md
+  DOWNLOAD_PATH: "/tmp"
+  IMS_URL: "http://cray-ims"
+  LOG_LEVEL: "INFO"
+  MANIFEST_FILE: "/manifest.yaml"
+  S3_IMS_BUCKET: "ims"
+  S3_BOOT_IMAGES_BUCKET: "boot-images"
+  SSL_VALIDATE: "False"
+  S3_CREDENTIALS_SECRET: "ims-s3-credentials"
+  S3_CREDENTIALS_ACCESS_KEY: "access_key"
+  S3_CREDENTIALS_SECRET_KEY: "secret_key"
+  S3_CREDENTIALS_S3_ENDPOINT_KEY: "s3_endpoint"
+

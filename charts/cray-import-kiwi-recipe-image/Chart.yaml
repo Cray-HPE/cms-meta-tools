@@ -1,0 +1,16 @@
+# Copyright 2020 Hewlett Packard Enterprise Development LP
+---
+apiVersion: v1
+name: cray-import-kiwi-recipe-image
+version: 0.2.0
+description: Base chart for importing Cray-authored Kiwi Descriptions and images into IMS/S3 on Shasta systems.
+home: "scms/cray-product-install-charts"
+keywords:
+- ims
+- s3
+- images
+- kiwi
+maintainers:
+- email: randy.kleinman@hpe.com
+  name: rkleinman
+

@@ -1,0 +1,48 @@
+# Copyright 2020 Hewlett Packard Enterprise Development LP
+# Full image including repo, e.g. dtr.dev.cray.com/cray/config-image:1.2.3
+#                                         ^         ^         ^        ^
+#                                         |         |         |        |
+#                    ['config_image'] [registry]  [repo]    [name]   [tag]
+config_image:
+  registry: "dtr.dev.cray.com"
+  repo: cray
+  name: ""
+  tag: ""
+
+# Docker image that will update the product catalog with results of the import
+# of images and recipes. Specifies the product catalog ConfigMap as well.
+catalog:
+  image:
+    registry: "dtr.dev.cray.com"
+    repo: cray
+    name: cray-product-catalog-update
+    tag: "0.0.1-20201028184555_30b896c"
+
+  config_map: cray-product-catalog
+  config_map_namespace: services
+
+import_job:
+
+  # cf-gitea-import image variables, for more information see
+  # https://stash.us.cray.com/projects/SCMS/repos/cf-gitea-import/browse/README.md
+  CF_IMPORT_PRODUCT_NAME: ""
+  CF_IMPORT_PRODUCT_VERSION: ""
+  CF_IMPORT_GITEA_URL: "http://gitea-vcs"
+  CF_IMPORT_GITEA_ORG: "cray"
+  CF_IMPORT_GITEA_REPO: ""
+  CF_IMPORT_BASE_BRANCH: "semver_previous_if_exists"
+  CF_IMPORT_CONTENT: "/content"
+  CF_IMPORT_PROTECT_BRANCH: "true"
+
+  # Specify the user/password of the gitea user from a k8s secret
+  CF_IMPORT_GITEA_USER_SECRET: "vcs-user-credentials"
+  CF_IMPORT_GITEA_USER_SECRET_KEY: "vcs_username"
+  CF_IMPORT_GITEA_PASSWORD_SECRET: "vcs-user-credentials"
+  CF_IMPORT_GITEA_PASSWORD_SECRET_KEY: "vcs_password"
+
+  # Additional containers to run along with the content-import container
+  initContainers: []
+  additionalContainers: []
+  additionalVolumes: []
+  nodeSelector: {}
+

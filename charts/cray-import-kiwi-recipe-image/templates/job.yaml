@@ -1,0 +1,80 @@
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ .Values.import_job.name }}
+spec:
+  template:
+    spec:
+      restartPolicy: Never
+      serviceAccountName: cray-product-catalog
+      volumes:
+      - emptyDir:
+          medium: Memory
+        name: catalog-overlay
+      containers:
+      - name: update-catalog
+        image: "{{ .Values.catalog.image.registry }}/{{ .Values.catalog.image.repo }}/{{ .Values.catalog.image.name }}:{{ .Values.catalog.image.tag }}"
+        imagePullPolicy: IfNotPresent
+        volumeMounts:
+        - mountPath: /results
+          name: catalog-overlay
+        env:
+        - name: PRODUCT
+          value: "{{ .Values.import_job.PRODUCT_NAME }}"
+        - name: PRODUCT_VERSION
+          value: "{{ .Values.import_job.PRODUCT_VERSION }}"
+        - name: CONFIG_MAP
+          value: "{{ .Values.catalog.config_map }}"
+        - name: CONFIG_MAP_NAMESPACE
+          value: "{{ .Values.catalog.config_map_namespace }}"
+        - name: YAML_CONTENT
+          value: /results/records.yaml
+        command: ["/bin/ash"]
+        args:
+        - -c
+        - "while [ ! -f ${YAML_CONTENT} ]; do sleep 2; echo 'Waiting for '${YAML_CONTENT}; done; /catalog_update.py"
+      - name: image-recipe-import
+        volumeMounts:
+        - mountPath: /results
+          name: catalog-overlay
+        env:
+        - name: DOWNLOAD_PATH
+          value: "{{ .Values.import_job.DOWNLOAD_PATH }}"
+        - name: IMS_URL
+          value: "{{ .Values.import_job.IMS_URL }}"
+        - name: LOG_LEVEL
+          value: "{{ .Values.import_job.LOG_LEVEL }}"
+        - name: MANIFEST_FILE
+          value: "{{ .Values.import_job.MANIFEST_FILE }}"
+        - name: S3_IMS_BUCKET
+          value: "{{ .Values.import_job.S3_IMS_BUCKET }}"
+        - name: S3_BOOT_IMAGES_BUCKET
+          value: "{{ .Values.import_job.S3_BOOT_IMAGES_BUCKET }}"
+        - name: SSL_VALIDATE
+          value: "{{ .Values.import_job.SSL_VALIDATE }}"
+        - name: ACCESS_KEY
+          valueFrom:
+            secretKeyRef:
+              name: "{{ .Values.import_job.S3_CREDENTIALS_SECRET }}"
+              key: "{{ .Values.import_job.S3_CREDENTIALS_ACCESS_KEY }}"
+        - name: SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: "{{ .Values.import_job.S3_CREDENTIALS_SECRET }}"
+              key: "{{ .Values.import_job.S3_CREDENTIALS_SECRET_KEY }}"
+        - name: S3_ENDPOINT
+          valueFrom:
+            secretKeyRef:
+              name: "{{ .Values.import_job.S3_CREDENTIALS_SECRET }}"
+              key: "{{ .Values.import_job.S3_CREDENTIALS_S3_ENDPOINT_KEY }}"
+        image: "{{ .Values.import_image.registry }}/{{ .Values.import_image.repo }}/{{ .Values.import_image.name }}:{{ .Values.import_image.tag }}"
+        imagePullPolicy: IfNotPresent
+        resources:
+          limits:
+            cpu: "2"
+            memory: 6Gi
+          requests:
+            cpu: 100m
+            memory: 2Gi
+
