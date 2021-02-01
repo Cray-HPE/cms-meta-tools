@@ -68,6 +68,24 @@ spec:
             secretKeyRef:
               name: "{{ .Values.import_job.S3_CREDENTIALS_SECRET }}"
               key: "{{ .Values.import_job.S3_CREDENTIALS_S3_ENDPOINT_KEY }}"
+
+        - name: BOS_URL
+          value: "{{ .Values.import_job.BOS_URL }}"
+        - name: BOS_SESSION_ENDPOINT
+          value: "{{ .Values.import_job.BOS_SESSION_ENDPOINT }}"
+        - name: BOS_KERNEL_PARAMETERS
+          value: "{{ .Values.import_job.BOS_KERNEL_PARAMETERS }}"
+        - name: BOS_ROOTFS_PROVIDER
+          value: "{{ .Values.import_job.BOS_ROOTFS_PROVIDER }}"
+        - name: BOS_ROOTFS_PROVIDER_PASSTHROUGH
+          value: "{{ .Values.import_job.BOS_ROOTFS_PROVIDER_PASSTHROUGH }}"
+        - name: BOS_CFS_CONFIGURATION
+          value: "{{ .Values.import_job.BOS_CFS_CONFIGURATION }}"
+        - name: BOS_ENABLE_CFS
+          value: "{{ .Values.import_job.BOS_ENABLE_CFS }}"
+        - name: CREATE_BOS_SESSION_TEMPLATE
+          value: "{{ .Values.import_job.CREATE_BOS_SESSION_TEMPLATE }}"
+
         image: "{{ .Values.import_image.registry }}/{{ .Values.import_image.repo }}/{{ .Values.import_image.name }}:{{ .Values.import_image.tag }}"
         imagePullPolicy: IfNotPresent
         resources:

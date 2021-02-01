@@ -47,3 +47,15 @@ import_job:
   S3_CREDENTIALS_SECRET_KEY: "secret_key"
   S3_CREDENTIALS_S3_ENDPOINT_KEY: "s3_endpoint"
 
+  CREATE_BOS_SESSION_TEMPLATE: "False"
+  BOS_URL: "http://cray-bos"
+  BOS_SESSION_ENDPOINT: "v1/sessiontemplate"
+  BOS_KERNEL_PARAMETERS: |
+    console=ttyS0,115200 bad_page=panic crashkernel=340M hugepagelist=2m-2g intel_iommu=off intel_pstate=disable
+    iommu=pt ip=dhcp numa_interleave_omit=headless numa_zonelist_order=node oops=panic pageblock_order=14
+    pcie_ports=native printk.synchronous=y rd.neednet=1 rd.retry=10 rd.shell turbo_boost_limit=999
+    spire_join_token=${SPIRE_JOIN_TOKEN}
+  BOS_ROOTFS_PROVIDER: "cpss3"
+  BOS_ROOTFS_PROVIDER_PASSTHROUGH: "dvs:api-gw-service-nmn.local:300:nmn0"
+  BOS_CFS_CONFIGURATION:
+  BOS_ENABLE_CFS: "False"
