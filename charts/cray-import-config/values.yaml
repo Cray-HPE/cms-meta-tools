@@ -16,7 +16,7 @@ catalog:
     registry: "dtr.dev.cray.com"
     repo: cray
     name: cray-product-catalog-update
-    tag: "0.1.1-20210125180410_3145354"
+    tag: 0.0.3
 
   config_map: cray-product-catalog
   config_map_namespace: services
