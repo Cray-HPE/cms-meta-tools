@@ -2,7 +2,7 @@
 ---
 apiVersion: v1
 name: cray-import-kiwi-recipe-image
-version: 0.2.3
+version: 0.2.4
 description: Base chart for importing Cray-authored Kiwi Descriptions and images into IMS/S3 on Shasta systems.
 home: "scms/cray-product-install-charts"
 keywords:
