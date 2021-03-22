@@ -33,6 +33,7 @@ import_job:
   CF_IMPORT_BASE_BRANCH: "semver_previous_if_exists"
   CF_IMPORT_CONTENT: "/content"
   CF_IMPORT_PROTECT_BRANCH: "true"
+  CF_IMPORT_PRIVATE_REPO: "true"
 
   # Specify the user/password of the gitea user from a k8s secret
   CF_IMPORT_GITEA_USER_SECRET: "vcs-user-credentials"
