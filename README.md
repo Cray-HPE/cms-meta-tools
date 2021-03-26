@@ -26,6 +26,10 @@ Users of subcharts should only reference released versions in their chart's requ
 When a subchart is ready to be released to consumers, merge master to `release/stable` and then
 communicate to users about the new versions.
 
+Do not use charts from any branch except `release/stable`.
+
+Do not create `release/[product]-[version]` branches in this repository as they do not have meaning for base charts.
+
 ## Contributors
 
 * Randy Kleinman (randy.kleinman@hpe.com)
