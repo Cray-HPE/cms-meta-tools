@@ -9,6 +9,9 @@ See the [developer guide](https://connect.us.cray.com/confluence/display/CASM/Sh
 Add charts to their own directory in the charts subdirectory and maintain their
 version with SemVer.
 
+Create a branch from the default (master) branch and submit a PR. When the PR is merged and
+the base chart is ready to be released for use, merge the default branch to `release/stable`.
+
 ## Versioning
 
 Charts are versioned in their `Chart.yaml` file. Released charts for public consumption to should
