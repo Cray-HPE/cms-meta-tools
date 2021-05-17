@@ -10,6 +10,12 @@ pipeline {
   }
 
   stages {
+    stage('Linting') {
+      when {expression {return fileExists("runLint.sh") == true}}
+      steps {
+          sh "./runLint.sh"
+      }
+    }
     stage('Package') {
       steps {
         packageHelmCharts(chartsPath: "${env.WORKSPACE}/charts",
