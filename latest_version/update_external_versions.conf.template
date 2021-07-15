@@ -1,0 +1,51 @@
+# This file contains any number of stanzas of the following form:
+#
+#image: image_name
+#    major: major_number
+#    minor: minor_number
+#    outfile: target_filename
+#    source: docker or helm
+#    team: team_name
+#    type: build_type
+#
+# For each such stanza, the only required field is the image field. This field
+# determines the name of the image whose latest version we wish to discover.
+#
+# The major and minor fields, if present, must contain nonnegative integers.
+# If specified, they constrain the image version search to versions with the
+# specified major and (if specified) minor number. If neither is specified, the
+# overall latest version of the image will be sought.
+#
+# outfile defines the name of the file that the version will be written to.
+# If not specified, it defaults to <image_name>.version
+#
+# The source, team, and type fields specify where in arti.dev the image search should be done.
+# The options for source are docker or helm. If not specified, it defaults to docker.
+# If team is not specified, it defaults to csm.
+# If type is not specified, it defaults to stable.
+#
+# For source docker, the image version will be based on the information found in:
+# https://arti.dev.cray.com/artifactory/<team>-docker-<type>-local/repository.catalog
+#
+# For source helm, the image version will be based on the information found in:
+# https://arti.dev.cray.com/artifactory/<team>-helm-<type>-local/index.yaml
+#
+# All defaults mentioned above are the defaults of the latest_versions tool. If a field
+# is not specified, the update_external_versions tool simply does not pass that argument
+# to the latest_versions tool. So in case of conflicting information, the defaults described
+# in that tool are the ones you should follow.
+#
+# Lines in the config file which do not set one of the recognized fields are ignored.
+
+image: my_image_name
+    major: 1
+    minor: 7
+
+image: other_image_name
+    major: 2
+    team: internal
+    type: master
+
+image: another_image_name
+    team: wlm-slurm
+
