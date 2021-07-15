@@ -1,0 +1,53 @@
+###################################################################################
+# Note: This is a config file for the file_filter tool, used to define the default
+# files that should be checked for copyright/license headers (CL headers). Each
+# repo can also define their own config file to add to or override values in this
+# one.
+###################################################################################
+
+
+include_extensions:
+    - "asm"
+    - "c"
+    - "cc"
+    - "cpp"
+    - "go"
+    - "h"
+    - "hpp"
+    - "java"
+    - "js"
+    - "py"
+    - "sh"
+    - "spec"
+
+
+# Source code header files need CL headers. I suppose go.mod
+# files are a grey area, but easy enough to include.
+include_subfiles:
+    - "go.mod"
+
+
+# Dockerfiles need CL headers
+# Which probably means Makefiles do too
+include_filename_patterns:
+    - "Dockerfile.*"
+    - "Makefile.*"
+
+
+# We by default want CL headers in all Ansible YAML files
+include_filepath_patterns:
+    - "(|.*/)ansible/.*[.](yml|yaml)"
+
+
+###################################################################################
+# EXCLUDES
+###################################################################################
+
+# We should not be checking files in vendor directories
+exclude_subdirectories:
+    - "vendor"
+
+# Similarly, we exclude third party directories
+exclude_dirname_patterns:
+    - "3rd(|-|_)[Pp]arty"
+    - "[Tt]hird(|-|_)[Pp]arty"
