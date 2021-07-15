@@ -1,0 +1,20 @@
+###################################################################################
+# Note: This is a config file for the file_filter tool, used to define the default
+# files that should be checked with the go_lint tool. Each repo can also define
+# their own config file to add to or override values in this one.
+###################################################################################
+
+
+include_extensions:
+    - "go"
+
+
+# We should not be checking files in vendor directories
+exclude_subdirectories:
+    - "vendor"
+
+
+# Similarly, we exclude third party directories
+exclude_dirname_patterns:
+    - "3rd(|-|_)[Pp]arty"
+    - "[Tt]hird(|-|_)[Pp]arty"
