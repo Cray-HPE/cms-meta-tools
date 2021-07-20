@@ -40,18 +40,25 @@
 # prefer to use a _ for that purpose, for some perverse reason. So we permit that exception here.
 
 # For all of these below specifications, note that a 0 by itself is not considered to be a leading 0
+NUM_PATTERN="0|[1-9][0-9]*"
 
 # The basic pattern is 3 nonnegative integers without leading 0s, separated by dots
-BASE_VPATTERN="(0|[1-9][0-9]*)[.](0|[1-9][0-9]*)[.](0|[1-9][0-9]*)"
+BASE_VPATTERN="(${NUM_PATTERN})[.](${NUM_PATTERN})[.](${NUM_PATTERN})"
 
-# An identifier is 1 or more alphanumeric characters or hyphens without leading 0s
-ID_PATTERN="(0|[-a-zA-Z1-9][-a-zA-Z0-9]*)"
+# A pre-release identifier is any of the following:
+# - Any string of 1 or more digits with no leading 0s
+# - Any string consisting of 1 or more alphanumeric characters or hyphens, with at least 1 non-numeric character
+PID_PATTERN="(${NUM_PATTERN}|[-a-zA-Z0-9]*[-a-zA-Z][-a-zA-Z0-9]*)"
 
-# A pre-release version is one or more dot-separated identifiers
-PRV_PATTERN="${ID_PATTERN}([.]${ID_PATTERN})*"
+# A pre-release version is one or more dot-separated pre-release identifiers
+PRV_PATTERN="${PID_PATTERN}([.]${PID_PATTERN})*"
 
-# Build metadata has the same format as pre-release versions
-BMD_PATTERN="${PRV_PATTERN}"
+# A build identifier is any of the following:
+# - Any string consisting of 1 or more alphanumeric characters or hyphens
+BID_PATTERN="[-a-zA-Z0-9][-a-zA-Z0-9]*"
+
+# Build metadata  is one or more dot-separated build identifiers
+BMD_PATTERN="${BID_PATTERN}([.]${BID_PATTERN})*"
 
 # The full version string must begin with the base pattern
 # After that is an optional hyphen and pre-release version
