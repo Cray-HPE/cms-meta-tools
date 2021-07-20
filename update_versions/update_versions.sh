@@ -35,7 +35,9 @@
 # Lines in the config file that do not begin with "sourcefile:", "tag:", or "targetfile:" are
 # ignored.
 
-# Version must be legal SemVer 2.0 pattern (see semver.org)
+# Version must be legal SemVer 2.0 pattern (see semver.org) with one permitted exception -- SemVer
+# requires the build metadata to be separated by a + character, but our internal build tools
+# prefer to use a _ for that purpose, for some perverse reason. So we permit that exception here.
 
 # For all of these below specifications, note that a 0 by itself is not considered to be a leading 0
 
@@ -53,8 +55,8 @@ BMD_PATTERN="${PRV_PATTERN}"
 
 # The full version string must begin with the base pattern
 # After that is an optional hyphen and pre-release version
-# After those is an optional plus and build-metadata
-VPATTERN="^${BASE_VPATTERN}(-${PRV_PATTERN})?([+]${BMD_PATTERN})?$"
+# After those is an optional plus (or underscore) and build-metadata
+VPATTERN="^${BASE_VPATTERN}(-${PRV_PATTERN})?([+_]${BMD_PATTERN})?$"
 
 CONFIGFILE="update_versions.conf"
 DEFAULT_VERSION_SOURCEFILE=".version"

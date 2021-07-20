@@ -22,10 +22,10 @@
 #
 # (MIT License)
 
-REL=cmt-1.0
+REL=cmt-1.1
 CMT_RPMS_URL=https://arti.dev.cray.com/artifactory/internal-rpm-stable-local/release/$REL/sle15_sp2/noarch/
 
-# Find latest cms-meta-tools RPM in our chosen release (0.1)
+# Find latest cms-meta-tools RPM in our chosen release
 function cmt-rpm-url
 {
     curl -s $CMT_RPMS_URL | 
