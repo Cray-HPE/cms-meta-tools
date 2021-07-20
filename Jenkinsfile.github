@@ -1,0 +1,56 @@
+@Library('csm-shared-library') _
+
+pipeline {
+    agent {
+        label "metal-gcp-builder"
+    }
+
+    options {
+        buildDiscarder(logRotator(numToKeepStr: "10"))
+        timestamps()
+    }
+
+    environment {
+        NAME = "cms-meta-tools"
+        DESCRIPTION = "Cray Management System - Meta Tools"
+        VERSION = sh(returnStdout: true, script: "./version.sh").trim()
+        SPEC_FILE = "cms-meta-tools.spec"
+        IS_STABLE = getBuildIsStable(releaseBranchIsStable: true)
+        BUILD_METADATA = getRpmRevision(isStable: env.IS_STABLE)
+    }
+
+    stages {
+        stage("Build Prep") {
+            steps {
+                sh "make build_prep"
+            }
+        }
+
+        stage("Prepare") {
+            steps {
+                sh "make prepare"
+            }
+        }
+
+        stage("Lint") {
+            steps {
+                sh "make lint"
+            }
+        }
+
+        stage("Build") {
+            steps {
+                sh "make rpm"
+            }
+        }
+
+        stage('Publish ') {
+            steps {
+                script {
+                    publishCsmRpms(component: env.NAME, pattern: "dist/rpmbuild/RPMS/noarch/*.rpm", arch: "noarch", isStable: env.IS_STABLE)
+                    publishCsmRpms(component: env.NAME, pattern: "dist/rpmbuild/SRPMS/*.rpm", arch: "src", isStable: env.IS_STABLE)
+                }
+            }
+        }
+    }
+}
