@@ -28,6 +28,9 @@ Group: System/Management
 # the BuildPrep script
 Version: @VERSION@
 Release: %(echo ${BUILD_METADATA})
+# At this point the RPM contains no binaries that would make it
+# architecture-specific
+BuildArch: noarch
 Source: %{name}-%{version}.tar.bz2
 Vendor: Cray Inc.
 Requires: bash

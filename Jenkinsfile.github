@@ -11,23 +11,24 @@ pipeline {
     }
 
     environment {
-        NAME = "cray-cms-meta-tools"
+        NAME = "cms-meta-tools"
         DESCRIPTION = "Cray Management System - Meta Tools"
+        VERSION = sh(returnStdout: true, script: "./version.sh").trim()
+        SPEC_FILE = "cms-meta-tools.spec"
         IS_STABLE = getBuildIsStable()
-        VERSION = getDockerBuildVersion(isStable: env.IS_STABLE)
         BUILD_METADATA = getRpmRevision(isStable: env.IS_STABLE)
     }
 
     stages {
-        stage("Prepare") {
-            steps {
-                sh "make prepare"
-            }
-        }
-
         stage("Build Prep") {
             steps {
                 sh "make build_prep"
+            }
+        }
+
+        stage("Prepare") {
+            steps {
+                sh "make prepare"
             }
         }
 
@@ -38,18 +39,8 @@ pipeline {
         }
 
         stage("Build") {
-            parallel {
-                stage('Rpm') {
-                    steps {
-                        sh "make rpm"
-                    }
-                }
-
-                stage('Rpm Test') {
-                    steps {
-                        sh "make rpm_test"
-                    }
-                }
+            steps {
+                sh "make rpm"
             }
         }
 
