@@ -25,5 +25,5 @@
 # Temporary script just to show executable .version file concept works
 # The version number below should be bumped when making changes, just like
 # you usually would
-echo 2.0.3
+echo 2.0.4
 exit 0
