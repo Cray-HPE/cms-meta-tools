@@ -28,6 +28,7 @@ pipeline {
 
         stage("Prepare") {
             steps {
+                runLibraryScript("addRpmMetaData.sh", env.SPEC_FILE)
                 sh "make prepare"
             }
         }
