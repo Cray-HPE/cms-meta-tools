@@ -15,7 +15,7 @@ pipeline {
         DESCRIPTION = "Cray Management System - Meta Tools"
         VERSION = sh(returnStdout: true, script: "./version.sh").trim()
         SPEC_FILE = "cms-meta-tools.spec"
-        IS_STABLE = getBuildIsStable(releaseBranchIsStable: true)
+        IS_STABLE = getBuildIsStable()
         BUILD_METADATA = getRpmRevision(isStable: env.IS_STABLE)
     }
 
