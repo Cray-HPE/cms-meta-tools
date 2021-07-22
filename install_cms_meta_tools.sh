@@ -22,30 +22,64 @@
 #
 # (MIT License)
 
-REL=cmt-0.1
-CMT_RPMS_URL=https://arti.dev.cray.com/artifactory/internal-rpm-master-local/release/$REL/sle15_sp2/noarch/
+# The following two variables determine which versions of the cms-meta-tools RPM will be considered
+REL_MAJOR=2
+REL_MINOR=0
+CMT_RPMS_URL=https://artifactory.algol60.net/artifactory/csm-rpms/hpe/stable/sle-15sp2/cms-meta-tools/noarch/
+RETRY_MINUTES=10
 
-# Find latest cms-meta-tools RPM in our chosen release (0.1)
+# Find latest cms-meta-tools RPM in our chosen release
 function cmt-rpm-url
 {
-    curl -s $CMT_RPMS_URL | 
+    local tmpfile
+    local stop
+    
+    tmpfile=/tmp/.cmt-rpm-url.$$.$RANDOM.$RANDOM.$RANDOM.tmp
+    let stop=SECONDS+60*RETRY_MINUTES
+
+    while [ true ]; do
+        if ! curl -is $CMT_RPMS_URL > $tmpfile ; then
+            echo "ERROR: curl command failed or error writing to $tmpfile" 1>&2
+            return 1
+        elif head -1 $tmpfile | grep -wq "5[0-9][0-9]" ; then
+            if [ $SECONDS -lt $stop ]; then
+                echo "WARNING: Temporary server error returned by $CMT_RPMS_URL. Will retry query in 30 seconds" 1>&2
+            else
+                echo "ERROR: Still receiving server errors after retrying for over $RETRY_MINUTES minutes" 1>&2
+                return 1
+            fi
+            sleep 30
+            continue
+        fi
+        break
+    done
+
+    if ! grep -Eqo "cms-meta-tools-[0-9][0-9]*[.][0-9][0-9]*[.][0-9][0-9]*-[0-9][0-9]*[.]noarch[.]rpm" $tmpfile ; then
+        echo "ERROR: No cms-meta-tools RPMs found in $CMT_RPMS_URL" 1>&2
+        cat $tmpfile 1>&2
+        return 1
+    elif ! grep -Eqo "cms-meta-tools-${REL_MAJOR}[.]${REL_MINOR}[.][0-9][0-9]*-[0-9][0-9]*[.]noarch[.]rpm" $tmpfile ; then
+        echo "ERROR: No cms-meta-tools RPMs with version ${REL_MAJOR}.${REL_MINOR} found in $CMT_RPMS_URL" 1>&2
+        cat $tmpfile 1>&2
+        return 1
+    fi
+    cat $tmpfile | 
         # Filter out everything except the RPM names
-        grep -Eo "cms-meta-tools-[0-9][0-9]*[.][0-9][0-9]*[.][0-9][0-9]*-[0-9][0-9]*_[0-9a-f][0-9a-f]*[.]noarch[.]rpm" | 
-        # Extract the version and build date and print those numbers followed by the full URL to the RPM
-        sed "s#^cms-meta-tools-\([0-9][0-9]*\)[.]\([0-9][0-9]*\)[.]\([0-9][0-9]*\)-\([0-9][0-9]*\)_.*\$#\1 \2 \3 \4 $CMT_RPMS_URL\0#" |
+        grep -Eo "cms-meta-tools-${REL_MAJOR}[.]${REL_MINOR}[.][0-9][0-9]*-[0-9][0-9]*[.]noarch[.]rpm" | 
+        # Extract the version and print those numbers followed by the full URL to the RPM
+        sed "s#^cms-meta-tools-[0-9][0-9]*[.][0-9][0-9]*[.]\([0-9][0-9]*\)-\([0-9][0-9]*\)[.].*\$#\1 \2 $CMT_RPMS_URL\0#" |
         # Sort numerically by those fields, higher numbers first 
-        sort -u -n -r -t" " -k1 -k2 -k3 -k4 | 
+        sort -u -n -r -t" " -k1 -k2 | 
         # Take the first one and print only the RPM URL
         head -1 | awk -F" " '{ print $NF }'
+    return 0
 }
 
-RPM_URL=$(cmt-rpm-url)
-if [ -n "$RPM_URL" ]; then
-    echo "cms-meta-tools RPM: $RPM_URL"
-else
-    echo "Unable to find latest cms-meta-tools RPM in $CMT_RPMS_URL" 1>&2
+if ! RPM_URL=$(cmt-rpm-url) || [ -z "${RPM_URL}" ]; then
+    echo "ERROR: Unable to find latest cms-metal-tools RPM" 1>&2
     exit 1
 fi
+echo "cms-meta-tools RPM: $RPM_URL"
 
 TRGDIR=$(pwd)/cms_meta_tools
 mkdir -pv "$TRGDIR" || exit 1
