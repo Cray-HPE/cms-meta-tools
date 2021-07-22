@@ -1,69 +1,88 @@
-// Jenkinsfile to push cray-product-install-charts repo to github
- 
-@Library('dst-shared@master') _
+@Library('csm-shared-library') _
 
 pipeline {
     agent {
-        kubernetes {
-            label "cray-product-install-charts-github-push"
-            containerTemplate {
-                name "cms-install-charts-github-push-cont"
-                image "arti.dev.cray.com/dstbuildenv-docker-master-local/cray-alpine3_build_environment:latest"
-                ttyEnabled true
-                command "cat"
-            }
-        }
+        label "metal-gcp-builder"
     }
 
-    // Configuration options applicable to the entire job
     options {
-        // This build should not take long, fail the build if it appears stuck
-        timeout(time: 10, unit: 'MINUTES')
-
-        // Don't fill up the build server with unnecessary cruft
-        buildDiscarder(logRotator(numToKeepStr: '5'))
-
-        // Add timestamps and color to console output, cuz pretty
+        buildDiscarder(logRotator(numToKeepStr: "10"))
         timestamps()
     }
 
     environment {
-        // Set environment variables here
-        GIT_TAG = sh(returnStdout: true, script: "git rev-parse --short HEAD").trim()
+        DESCRIPTION = "Cray product install Helm charts."
+        IS_STABLE = getBuildIsStable()
+
+        IMPORT_CONFIG_CHART_NAME = "cray-import-config"
+        IMPORT_CONFIG_CHART_VERSION = getChartVersion(chartDirectory: 'charts', name: env.IMPORT_CONFIG_CHART_NAME, isStable: env.IS_STABLE)
+
+        IMPORT_KIWI_RECIPE_IMAGE_CHART_NAME = "cray-import-kiwi-recipe-image"
+        IMPORT_KIWI_RECIPE_IMAGE_CHART_VERSION = getChartVersion(chartDirectory: 'charts', name: env.IMPORT_KIWI_RECIPE_IMAGE_CHART_NAME, isStable: env.IS_STABLE)
     }
 
     stages {
-        stage('Push to github') {
-            when { allOf {
-                expression { BRANCH_NAME ==~ /(bugfix\/.*|feature\/.*|hotfix\/.*|master|release\/.*)/ }
-            }}
+        stage("Lint") {
             steps {
-                container('cms-install-charts-github-push-cont') {
-                    sh """
-                        apk add --no-cache bash curl jq git openssl
-                    """
-                    script {
-                        pushToGithub(
-                            githubRepo: "Cray-HPE/cray-product-install-charts",
-                            pemSecretId: "githubapp-stash-sync",
-                            githubAppId: "91129",
-                            githubAppInstallationId: "13313749"
-                        )
+                script {
+                    sh "make lint"
+                }
+            }
+        }
+
+        stage("Prepare") {
+            steps {
+                script {
+                    sh "make chart_setup"
+                }
+            }
+        }
+
+        stage("Test") {
+            parallel {
+                stage("cray-import-config") {
+                    steps {
+                        script {
+                            sh "make import_config_test"
+                        }
+                    }
+                }
+                stage("cray-import-kiwi-recipe-image") {
+                    steps {
+                        script {
+                            sh "make import_kiwi_recipe_image_test"
+                        }
                     }
                 }
             }
         }
-    }
 
-    post('Post-build steps') {
-        failure {
-            emailext (
-                subject: "FAILED: Job '${env.JOB_NAME} [${env.BUILD_NUMBER}]'",
-                body: """<p>FAILED: Job '${env.JOB_NAME} [${env.BUILD_NUMBER}]':</p>
-                <p>Check console output at &QUOT;<a href='${env.BUILD_URL}'>${env.JOB_NAME} [${env.BUILD_NUMBER}]</a>&QUOT;</p>""",
-                recipientProviders: [[$class: 'CulpritsRecipientProvider'], [$class: 'RequesterRecipientProvider']]
-            )
+        stage("Package") {
+            parallel {
+                stage("cray-import-config") {
+                    steps {
+                        script {
+                            sh "make import_config_package"
+                        }
+                    }
+                }
+                stage("cray-import-kiwi-recipe-image") {
+                    steps {
+                        script {
+                            sh "make import_kiwi_recipe_image_package"
+                        }
+                    }
+                }
+            }
         }
 
+        stage("Publish") {
+            steps {
+                script {
+                    publishCsmHelmCharts(component: env.IMPORT_CONFIG_CHART_NAME, chartsPattern: "${env.IMPORT_CONFIG_CHART_NAME}*.tgz", chartsPath: "${WORKSPACE}/charts/.packaged", isStable: env.IS_STABLE)
+                    publishCsmHelmCharts(component: env.IMPORT_KIWI_RECIPE_IMAGE_CHART_NAME, chartsPattern: "${env.IMPORT_KIWI_RECIPE_IMAGE_CHART_NAME}*.tgz", chartsPath: "${WORKSPACE}/charts/.packaged", isStable: env.IS_STABLE)
+                }
+            }
+        }
     }
 }
