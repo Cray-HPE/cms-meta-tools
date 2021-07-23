@@ -99,8 +99,8 @@ function update_tags
                 fi
                 ;;
             *)
-                # For major, minor, outfile, team, and type the argument name is the same as the field
-                # name, so it's easy
+                # For all other fields (major, minor, outfile, server, team, type, and url) the
+                # argument name is the same as the field name, so it's easy
                 lv_args+=("--$field_name" "$field_value")
                 ;;
         esac

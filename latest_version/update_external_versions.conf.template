@@ -1,12 +1,19 @@
+# All default values mentioned below are the defaults of the latest_versions tool. If a field
+# is not specified, the update_external_versions tool simply does not pass that argument
+# to the latest_versions tool. So in case of conflicting information, the defaults described
+# in that tool are the ones you should follow.
+
 # This file contains any number of stanzas of the following form:
 #
 #image: image_name
-#    major: major_number
-#    minor: minor_number
-#    outfile: target_filename
+#    major: major number
+#    minor: minor number
+#    outfile: target filename
+#    server: arti or algol60
 #    source: docker or helm
-#    team: team_name
-#    type: build_type
+#    team: team name
+#    type: build type
+#    url: url of repository.catalog (for docker) or index.yaml (for helm)
 #
 # For each such stanza, the only required field is the image field. This field
 # determines the name of the image whose latest version we wish to discover.
@@ -19,10 +26,19 @@
 # outfile defines the name of the file that the version will be written to.
 # If not specified, it defaults to <image_name>.version
 #
-# The source, team, and type fields specify where in arti.dev the image search should be done.
-# The options for source are docker or helm. If not specified, it defaults to docker.
+# server specifies whether the image search should be done on arti.dev or algol60.net
+# If not specified, it defaults to algol60
+#
+# If source is not specified, it defaults to docker.
 # If team is not specified, it defaults to csm.
-# If type is not specified, it defaults to stable.
+#
+# The source, team, and type fields specify where on the server the image search should be done.
+#
+################
+# server: arti #
+################
+#
+# For arti, if type is not specified, it defaults to stable
 #
 # For source docker, the image version will be based on the information found in:
 # https://arti.dev.cray.com/artifactory/<team>-docker-<type>-local/repository.catalog
@@ -30,16 +46,44 @@
 # For source helm, the image version will be based on the information found in:
 # https://arti.dev.cray.com/artifactory/<team>-helm-<type>-local/index.yaml
 #
-# All defaults mentioned above are the defaults of the latest_versions tool. If a field
-# is not specified, the update_external_versions tool simply does not pass that argument
-# to the latest_versions tool. So in case of conflicting information, the defaults described
-# in that tool are the ones you should follow.
+###################
+# server: algol60 #
+###################
+#
+# For algol60, if type is not specified, it defaults to stable
+#
+# For source docker, the image version will be based on the information found in:
+# https://artifactory.algol60.net/artifactory/<team>-docker/repository.catalog
+#
+# For source helm, the image version will be based on the information found in:
+# https://artifactory.algol60.net/artifactory/<team>-helm-charts/index.yaml
+#
+# For algol60, the type field is used within these files to distinguish between
+# stable and unstable images by looking at the path to the images.
+#
+#######
+# url #
+#######
+#
+# The url field is mutually exclusive with the following fields: server and team
+# It allows you to instead point the tool directly to the file it should retrieve to
+# use as its image index.
+# For source docker, it will assume the file is in the same JSON format as the repository.catalog
+# files found on arti.dev or algol60
+# For source helm, it will assume the file is in the same YAML format as the index.yaml files
+# found on arti.dev or algol60
+# When the url field is used, there is no default type. Thus, if the specified file includes
+# the image type in the file paths (like on algol60), the type must be explicitly specified or
+# no images will be found. Alternatively, if the specified file does NOT include the image type
+# in the file paths (like on arti.dev), the type parameter should be omitted entirely, otherwise
+# no images will be found.
 #
 # Lines in the config file which do not set one of the recognized fields are ignored.
 
 image: my_image_name
     major: 1
     minor: 7
+    server: algol60
 
 image: other_image_name
     major: 2
@@ -49,3 +93,6 @@ image: other_image_name
 image: another_image_name
     team: wlm-slurm
 
+image: yet_another_image_name
+    major: 1
+    url: https://myserver.mil/helm/index.yaml

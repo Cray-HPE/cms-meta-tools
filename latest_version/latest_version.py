@@ -22,15 +22,57 @@
 #
 # (MIT License)
 
-# Usage: latest_version.py {docker|helm} input_file image_name [[major# [minor#]]
+# Usage: latest_version.py [--type image_type] [--nonstandard-versions-okay]
+#                          [[--major major# [--minor minor#]]
+#                          --file input_file --image image_name {--docker | --helm}
 #
 # Parse the input_file (json file if docker, yaml if helm)
 # Find all versions of the specified image, filtering for major and minor number if specified
+
+# image_type is used to filter stable vs unstable on algol60
+# For docker JSON files, "<type>/" will be prepended to the image name in the manifest listing.
+# For helm YAML files, "<type>/" will be prepended to the image name in the url field for an image
+
+# If --nonstandard-versions-okay is not specified, then the version strings will be
+# filtered to make sure they match the format described in update_versions.sh (essentially SemVer 2.0,
+# with a minor exception)
+
 # Print the version string of the latest version and exit code 0
 # Print error message and exit code 1 if there is a problem with any of the above
 
 import functools
+import re
 import sys
+
+# Version regular expression patterns
+
+NUM_PATTERN="0|[1-9][0-9]*"
+
+# The basic pattern is 3 nonnegative integers without leading 0s, separated by dots
+BASE_VPATTERN="(?:{NUM})[.](?:{NUM})[.](?:{NUM})".format(NUM=NUM_PATTERN)
+
+# A pre-release identifier is any of the following:
+# - Any string of 1 or more digits with no leading 0s
+# - Any string consisting of 1 or more alphanumeric characters or hyphens, with at least 1 non-numeric character
+PID_PATTERN="(?:{NUM}|[-a-zA-Z0-9]*[-a-zA-Z][-a-zA-Z0-9]*)".format(NUM=NUM_PATTERN)
+
+# A pre-release version is one or more dot-separated pre-release identifiers
+PRV_PATTERN="{PID}(?:[.]{PID})*".format(PID=PID_PATTERN)
+
+# A build identifier is any of the following:
+# - Any string consisting of 1 or more alphanumeric characters or hyphens
+BID_PATTERN="[-a-zA-Z0-9][-a-zA-Z0-9]*"
+
+# Build metadata is one or more dot-separated build identifiers
+BMD_PATTERN="{BID}(?:[.]{BID})*".format(BID=BID_PATTERN)
+
+# The full version string must begin with the base pattern
+# After that is an optional hyphen and pre-release version
+# After those is an optional plus (or underscore) and build-metadata
+VPATTERN_PREFORMAT=BASE_VPATTERN + "(?:-{PRV})?" + "(?:[+_]{BMD})?"
+VPATTERN = VPATTERN_PREFORMAT.format(PRV=PRV_PATTERN, BMD=BMD_PATTERN)
+
+SEMVER_REGEX = re.compile(VPATTERN)
 
 def print_err(s):
     print("latest_version.py: ERROR: " + s, file=sys.stderr)
@@ -53,24 +95,56 @@ def validate_majorminor(n):
     return i
 
 def parse_parameters():
-    major = None
-    minor = None
-    args = sys.argv[1:]
-    if not 3 <= len(args) <= 5:
-        err_exit("Requires between 3 and 5 arguments, but received %d: %s" % (
-            len(args), " ".join(args)))
-    docker_helm, input_file, image_name = args[:3]
-    if docker_helm not in { "docker", "helm" }:
-        err_exit("First argument must be docker or helm")
-    if not input_file:
-        err_exit("Input file name must not be blank")
-    if not image_name:
-        err_exit("Image name must not be blank")
-    if len(args) >= 4:
-        major = validate_majorminor(args[3])
-        if len(args) >= 5:
-            minor = validate_majorminor(args[4])
-    return docker_helm, input_file, image_name, major, minor
+    argument_to_parameter_map = {
+        "--nonstandard-versions-okay": "no_version_format_filter",
+        "--type": "image_type",
+        "--major": "major",
+        "--minor": "minor",
+        "--file": "input_file",
+        "--image": "image_name",
+        "--docker": "docker_helm",
+        "--helm": "docker_helm" }
+    params = { pname: None for pname in argument_to_parameter_map.values() }
+    cmd_line_args = sys.argv[1:]
+    i=0
+    while i < len(cmd_line_args):
+        arg = cmd_line_args[i]
+        i+=1
+        try:
+            param_name = argument_to_parameter_map[arg]
+        except KeyError:
+            err_exit("Unrecognized flag: " + arg)
+        if params[param_name] != None:
+            err_exit("Duplicate or conflicting flag: " + arg)
+        elif arg in { "--docker", "--helm" }:
+            # Just strip off the leading --
+            params[param_name] = arg[2:]
+            continue
+        elif arg == "--nonstandard-versions-okay":
+            params[param_name] = True
+            continue
+        try:
+            flag_arg = cmd_line_args[i]
+        except IndexError:
+            err_exit("%s flag requires an argument" % arg)
+        i+=1
+        if arg in { "--major", "--minor" }:
+            params[param_name] = validate_majorminor(flag_arg)
+        elif not flag_arg:
+            err_exit("%s flag cannot have a blank argument" % arg)
+        else:
+            params[param_name] = flag_arg
+
+    # Finally, make sure we got required arguments
+    if params["minor"] != None and params["major"] == None:
+        err_exit("A minor number may not be specified without a major number")
+    elif params["input_file"] == None:
+        err_exit("Input file must be specified")
+    elif params["image_name"] == None:
+        err_exit("Image name must be specified")
+    elif params["docker_helm"] == None:
+        err_exit("--docker or --helm must be specified")
+    return params
 
 def is_int(s):
     try:
@@ -157,7 +231,14 @@ def compare_versions(a, b, prStripped=False):
     # strings
     return compare_versions(aPrerelease, bPrerelease)
 
-docker_helm, input_file, image_name, major, minor = parse_parameters()
+params = parse_parameters()
+docker_helm = params["docker_helm"]
+input_file = params["input_file"]
+image_name = params["image_name"]
+image_type = params["image_type"]
+major = params["major"]
+minor = params["minor"]
+version_format_filter = (params["no_version_format_filter"] != True)
 
 if major == None:
     version_prefix = ""
@@ -172,11 +253,26 @@ if docker_helm == "docker":
     with open(input_file, "rt") as f:
         docker_data = json.load(f)
     manifests = docker_data["manifests"]
-    # The manifests are strings of the form image_name/version/manifest.json
+    # The manifests are strings of the form 
+    # image_name/version/manifest.json              (arti.dev format)
+    # or
+    # image_type/image_name/version/manifest.json   (algol60 format)
+    #
+    # For this tool, we assume that if image_type has been specified to us, then we're dealing with
+    # the second format, otherwise we are dealing with the first format
 
-    # Now we just look for manifest strings that begin with image_name/
-    # and extract the second /-separated field
-    all_versions = [ m.split('/')[1] for m in manifests if m.find(image_name + "/") == 0 ]
+    if image_type == None:
+        # Now we just look for manifest strings that begin with image_name/
+        # and extract the second /-separated field
+        image_prefix = image_name + "/"
+        field_index = 1
+    else:
+        # look for manifest strings that begin with image_type/image_name/
+        # and extract the third /-separated field
+        image_prefix = image_type + "/" + image_name + "/"
+        field_index = 2
+
+    all_versions = [ m.split('/')[field_index] for m in manifests if m.find(image_prefix) == 0 ]
 else:
     import yaml
     with open(input_file, "rt") as f:
@@ -186,15 +282,34 @@ else:
         my_image_entries = entries[image_name]
     except KeyError:
         my_image_entries = list()
+    # If an image_type was specified, we need to filter this list further, only including
+    # entries whose url field contains at least 1 url with "/image_type/image_name/" in them
+    if image_type != None:
+        url_substring = "/" + image_type + "/" + image_name + "/"
+        my_image_entries = [ entry for entry in my_image_entries if any(
+            url_substring in url for url in entry["urls"]) ]
     # my_image_entries is now a list of dicts that have info on each version of our
     # image. So we need to turn that into a list of just version strings
     all_versions = [ mie["version"] for mie in my_image_entries ]
 
+if image_type == None:
+    label="entries"
+else:
+    label="%s entries" % image_type
+
 if len(all_versions) == 0:
     if version_prefix:
-        err_exit("No entries found for %s even before filtering for version %s" % (image_name, version_prefix))
+        err_exit("No %s found for %s even before filtering for version %s" % (label, image_name, version_prefix))
     else:
-        err_exit("No entries found for %s" % image_name)
+        err_exit("No %s found for %s" % (label, image_name))
+elif version_format_filter:
+    # Filter out any versions which don't begin with #.#.# followed by 
+    all_versions = [ ver for ver in all_versions if SEMVER_REGEX.fullmatch(ver) ]
+    if len(all_versions) == 0:
+        if version_prefix:
+            err_exit("No %s found for %s after filtering nonstandard version formats (but before filtering for version %s)" % (label, image_name, version_prefix))
+        else:
+            err_exit("No %s found for %s after filtering nonstandard version formats" % (label, image_name))
 
 if version_prefix:
     # Now we need to extract only those version strings which match our prefix
