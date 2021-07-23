@@ -105,7 +105,7 @@ function update_tags
                 ;;
         esac
     done <<-EOF
-	$(grep -E '^[[:space:]]*(image|major|minor|outfile|source|team|type):' $CONFIGFILE | 
+	$(grep -E '^[[:space:]]*(image|major|minor|outfile|server|source|team|type|url):' $CONFIGFILE | 
         sed -e 's/^[[:space:]][[:space:]]*//' \
             -e 's/[[:space:]][[:space:]]*$//' \
             -e 's/^\([^:][^:]*\):[[:space:]][[:space:]]*/\1:/')
