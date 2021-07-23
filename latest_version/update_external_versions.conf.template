@@ -77,8 +77,6 @@
 # no images will be found. Alternatively, if the specified file does NOT include the image type
 # in the file paths (like on arti.dev), the type parameter should be omitted entirely, otherwise
 # no images will be found.
-#
-# Lines in the config file which do not set one of the recognized fields are ignored.
 
 image: my_image_name
     major: 1
