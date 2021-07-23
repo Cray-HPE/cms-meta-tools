@@ -23,22 +23,36 @@
 # (MIT License)
 
 USAGE="\
-usage: latest_version.sh [{--docker | --helm}] [--team <team>] [--type <type>]
-                         [--major x [--minor y]] [--outfile <file> [--overwrite]] image_name
+usage: latest_version.sh [--major x [--minor y]] 
+                         [--docker | --helm] [--type <type>]
+                         [[--server <server>] [--team <team>]  | [--url <url>]]
+                         [--outfile <file> [--overwrite]] image_name
        latest_version.sh {-h || --help}"
 
 USAGE_EXTRA="\
-team: defaults to csm
-type: defaults to stable
+server: algol60 or arti. Defaults to algol60 (unless url is specified, in which case it is not used)
+team: Defaults to csm (unless url is specified, in which case it is not used)
+type: Defaults to stable (unless url is specified, in which case it may still be specified but has no
+default value if it is not specified)
 
-If docker is specified, grabs https://arti.dev.cray.com/artifactory/<team>-docker-<type>-local/repository.catalog
-If helm is specified, grabs https://arti.dev.cray.com/artifactory/<team>-helm-<type>-local/index.yaml
-If neither is specified, docker is assumed.
+For server arti:
+docker: use https://arti.dev.cray.com/artifactory/<team>-docker-<type>-local/repository.catalog
+helm: use https://arti.dev.cray.com/artifactory/<team>-helm-<type>-local/index.yaml
 
-Looks in file for newest version of specified image name, and returns the version string
+For server algol60:
+docker: use https://artifactory.algol60.net/artifactory/<team>-docker/repository.catalog
+helm: use https://artifactory.algol60.net/artifactory/<team>-helm-charts/index.yaml
+
+For url, the file at the specified URL will be used.
+docker: Assumes file is in the same JSON format as the arti/algol60 repository.catalog files
+helm: Assumes file is in the same YAML format as the arti/algol60 index.yaml files
+
+Looks in file for newest version of specified image name, and returns the version string.
 If a major is specified, it confines itself to versions of that major number.
 If a minor is also specified, it further confines itself to versions of that minor number.
 Major and minor numbers must be nonnegative integers and may not have leading 0s
+For algol60, the type field is used within these files to distinguish between
+stable and unstable images by looking at the path to the images.
 
 Version is written to either the specified outfile or <image_name>.version if no outfile is specified.
 If the output file already exists, the script exits in error unless --overwrite is specified."
@@ -66,6 +80,8 @@ TYPE=""
 DOCKER_HELM=""
 OUTFILE=""
 OVERWRITE=N
+SERVER=""
+URL=""
 
 function parse_arguments
 {
@@ -103,8 +119,20 @@ function parse_arguments
                 OVERWRITE=Y
                 shift
                 ;;
+            "--server")
+                [ -n "$SERVER" ] && usage "--server may not be specified multiple times"
+                [ -n "$URL" ] && usage "--server and --url are mutually exclusive"
+                [ $# -lt 2 ] && usage "--server requires an argument"
+                [ -z "$2" ] && usage "Server may not be blank"
+                if [ "$2" != "arti" ] && [ "$2" != "algol60" ]; then
+                    usage "--server argument must be arti or algol60. Invalid server: $2"
+                fi
+                SERVER="$2"
+                shift 2
+                ;;
             "--team")
                 [ -n "$TEAM" ] && usage "--team may not be specified multiple times"
+                [ -n "$URL" ] && usage "--team and --url are mutually exclusive"
                 [ $# -lt 2 ] && usage "--team requires an argument"
                 [ -z "$2" ] && usage "Team may not be blank"
                 echo "$2" | grep -Eq "[^-_.a-zA-Z0-9]" && usage "Invalid characters in team name: $2"
@@ -117,6 +145,15 @@ function parse_arguments
                 [ -z "$2" ] && usage "Type may not be blank"
                 echo "$2" | grep -Eq "[^-_.a-zA-Z0-9]" && usage "Invalid characters in type name: $2"
                 TYPE="$2"
+                shift 2
+                ;;
+            "--url")
+                [ -n "$URL" ] && usage "--url may not be specified multiple times"
+                [ -n "$SERVER" ] && usage "--server and --url are mutually exclusive"
+                [ -n "$TEAM" ] && usage "--team and --url are mutually exclusive"
+                [ $# -lt 2 ] && usage "--url requires an argument"
+                [ -z "$2" ] && usage "URL may not be blank"
+                URL="$2"
                 shift 2
                 ;;
             *)
@@ -142,16 +179,21 @@ function parse_arguments
             usage "Output file $OUTFILE already exists, and --overwrite not specified"
         fi
     fi
-    # Set defaults
-    [ -z "$TEAM" ] && TEAM="csm"
-    [ -z "$TYPE" ] && TYPE="stable"
+    # If URL is not specified, then set default values for TEAM, TYPE, and SERVER
+    if [ -z "$URL" ]; then
+        [ -z "$TEAM" ] && TEAM="csm"
+        [ -z "$TYPE" ] && TYPE="stable"
+        [ -z "$SERVER" ] && SERVER="algol60"
+    fi
 }
 
 function get_python_yaml
 {
     # Test to see if yaml module is available
+    echo "Testing to see if Python yaml module is present" 1>&2
     if ! python3 -c "import yaml" ; then
         # In case this is an alpine container
+        echo "Python yaml module not found -- trying to get it" 1>&2
         apk add --no-cache py3-pip python3 > /dev/null 2>&1
         python3 -m ensurepip
         pip3 install PyYAML \
@@ -166,13 +208,29 @@ function get_python_yaml
 }
 
 parse_arguments "$@"
-URL="https://arti.dev.cray.com/artifactory/${TEAM}-${DOCKER_HELM}-${TYPE}-local"
+if [ -z "$URL" ]; then
+    if [ "$SERVER" = "arti" ]; then
+        URL="https://arti.dev.cray.com/artifactory/${TEAM}-${DOCKER_HELM}-${TYPE}-local"
+        if [ "${DOCKER_HELM}" = helm ]; then
+            URL="$URL/index.yaml"
+        else
+            URL="$URL/repository.catalog"
+        fi
+    else
+        # algol60
+        URL="https://artifactory.algol60.net/artifactory/${TEAM}-"
+        if [ "${DOCKER_HELM}" = helm ]; then
+            URL="${URL}helm-charts/index.yaml"
+        else
+            URL="${URL}docker/repository.catalog"
+        fi
+    fi
+fi
+
 if [ "${DOCKER_HELM}" = helm ]; then
     get_python_yaml 1>&2
     TMPFILE="/tmp/.latest_version.sh.$$.$RANDOM.index.yaml"
-    URL="$URL/index.yaml"
 else
-    URL="$URL/repository.catalog"
     TMPFILE="/tmp/.latest_version.sh.$$.$RANDOM.repository.catalog.json"
 fi
 
@@ -183,8 +241,23 @@ if ! curl -sSf -o "$TMPFILE" "$URL" 1>&2 ; then
     exit 1
 fi
 
+# Construct our list of optional arguments to latest_version.py
+OPTIONAL_ARGS=""
+
+# Even if it is set, we do not pass in the type argument if we are
+# using arti, because for arti the type is baked into the URL itself
+if [ -n "$TYPE" ] && [ "$SERVER" != "arti" ]; then
+    OPTIONAL_ARGS="${OPTIONAL_ARGS} --type $TYPE"
+fi   
+if [ -n "$MAJOR" ]; then
+    OPTIONAL_ARGS="${OPTIONAL_ARGS} --major $MAJOR"
+    if [ -n "$MINOR" ]; then
+        OPTIONAL_ARGS="${OPTIONAL_ARGS} --minor $MINOR"
+    fi
+fi
+
 MYDIR=$(dirname ${BASH_SOURCE[0]})
 
 # Now call latest_version.py located in this directory
-$MYDIR/latest_version.py "${DOCKER_HELM}" "$TMPFILE" "${IMAGE_NAME}" $MAJOR $MINOR > $OUTFILE
+$MYDIR/latest_version.py "--${DOCKER_HELM}" --file "$TMPFILE" --image "${IMAGE_NAME}" ${OPTIONAL_ARGS} > $OUTFILE
 exit $?

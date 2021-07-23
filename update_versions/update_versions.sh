@@ -57,7 +57,7 @@ PRV_PATTERN="${PID_PATTERN}([.]${PID_PATTERN})*"
 # - Any string consisting of 1 or more alphanumeric characters or hyphens
 BID_PATTERN="[-a-zA-Z0-9][-a-zA-Z0-9]*"
 
-# Build metadata  is one or more dot-separated build identifiers
+# Build metadata is one or more dot-separated build identifiers
 BMD_PATTERN="${BID_PATTERN}([.]${BID_PATTERN})*"
 
 # The full version string must begin with the base pattern
