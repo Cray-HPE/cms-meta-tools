@@ -59,29 +59,29 @@ Backend tools used to build and support Cray CMS projects
 %build
 
 %install
-install -m 755 -d                                                   %{buildroot}%{clcdir}/
-install -m 755 copyright_license_check/copyright_license_check.sh   %{buildroot}%{clcdir}
-install -m 644 copyright_license_check/copyright_license_check.yaml %{buildroot}%{clcdir}
+install -m 755 -d                                                             %{buildroot}%{clcdir}/
+install -m 755 resources/copyright_license_check/copyright_license_check.sh   %{buildroot}%{clcdir}
+install -m 644 resources/copyright_license_check/copyright_license_check.yaml %{buildroot}%{clcdir}
 
-install -m 755 -d                                                   %{buildroot}%{ffdir}/
-install -m 755 file_filter/file_filter.py                           %{buildroot}%{ffdir}
-install -m 755 file_filter/file_filter.sh                           %{buildroot}%{ffdir}
+install -m 755 -d                                                             %{buildroot}%{ffdir}/
+install -m 755 resources/file_filter/file_filter.py                           %{buildroot}%{ffdir}
+install -m 755 resources/file_filter/file_filter.sh                           %{buildroot}%{ffdir}
 
-install -m 755 -d                                                   %{buildroot}%{gldir}/
-install -m 755 go_lint/go_lint.sh                                   %{buildroot}%{gldir}
-install -m 644 go_lint/go_lint.yaml                                 %{buildroot}%{gldir}
+install -m 755 -d                                                             %{buildroot}%{gldir}/
+install -m 755 resources/go_lint/go_lint.sh                                   %{buildroot}%{gldir}
+install -m 644 resources/go_lint/go_lint.yaml                                 %{buildroot}%{gldir}
 
-install -m 755 -d                                                   %{buildroot}%{lvdir}/
-install -m 755 latest_version/latest_version.py                     %{buildroot}%{lvdir}
-install -m 755 latest_version/latest_version.sh                     %{buildroot}%{lvdir}
-install -m 755 latest_version/update_external_versions.sh           %{buildroot}%{lvdir}
+install -m 755 -d                                                             %{buildroot}%{lvdir}/
+install -m 755 resources/latest_version/latest_version.py                     %{buildroot}%{lvdir}
+install -m 755 resources/latest_version/latest_version.sh                     %{buildroot}%{lvdir}
+install -m 755 resources/latest_version/update_external_versions.sh           %{buildroot}%{lvdir}
 
-install -m 755 -d                                                   %{buildroot}%{scdir}/
-install -m 755 scripts/runBuildPrep.sh                              %{buildroot}%{scdir}
-install -m 755 scripts/runLint.sh                                   %{buildroot}%{scdir}
+install -m 755 -d                                                             %{buildroot}%{scdir}/
+install -m 755 resources/scripts/runBuildPrep.sh                              %{buildroot}%{scdir}
+install -m 755 resources/scripts/runLint.sh                                   %{buildroot}%{scdir}
 
-install -m 755 -d                                                   %{buildroot}%{uvdir}/
-install -m 755 update_versions/update_versions.sh                   %{buildroot}%{uvdir}
+install -m 755 -d                                                             %{buildroot}%{uvdir}/
+install -m 755 resources/update_versions/update_versions.sh                   %{buildroot}%{uvdir}
 
 %clean
 rm -f %{buildroot}%{clcdir}/copyright_license_check.sh

@@ -36,7 +36,7 @@ all : build_prep prepare lint rpm
 rpm: rpm_package_source rpm_build_source rpm_build
 
 build_prep:
-		./scripts/runBuildPrep.sh
+		./resources/scripts/runBuildPrep.sh
 
 prepare:
 		rm -rf $(BUILD_DIR)
@@ -44,7 +44,7 @@ prepare:
 		cp $(SPEC_FILE) $(BUILD_DIR)/SPECS/
 
 lint:
-		./scripts/runLint.sh
+		./resources/scripts/runLint.sh
 
 rpm_package_source:
 		tar --transform 'flags=r;s,^,/$(SOURCE_NAME)/,' --exclude .git --exclude dist -cvjf $(SOURCE_PATH) .
