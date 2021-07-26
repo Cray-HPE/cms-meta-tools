@@ -63,7 +63,7 @@ def call() {
         """).strip()
     echo "resourceDir = ${resourceDir}"
     
-    sh "mkdir -p ${dirNames.join(' ')}"
+    sh "mkdir -p ${dirNames.collect { "${resourceDir}/$it" }.join(' ')}"
 
     fileNames.each { filename ->
         writeFile(file: "${resourceDir}/${filename}", text: libraryResource(filename))
@@ -72,6 +72,6 @@ def call() {
     scriptNames.each { filename ->
         writeFile(file: "${resourceDir}/${filename}", text: libraryResource(filename))
     }
-    sh "chmod +x ${scriptNames.join(' ')}"
+    sh "chmod +x ${scriptNames.collect { "${resourceDir}/$it" }.join(' ')}"
     return resourceDir
 }
