@@ -12,6 +12,7 @@ include_extensions:
     - "cc"
     - "cpp"
     - "go"
+    - "groovy"
     - "h"
     - "hpp"
     - "java"
