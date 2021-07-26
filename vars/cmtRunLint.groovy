@@ -57,7 +57,7 @@ def call() {
         writeFile(file: "${resourceDir}/${filename}", text: libraryResource(filename))
         sh "chmod +x ${resourceDir}/${filename}"
     }
-    sh "chmod +x ${filenames.join(' ')}"
+    sh "chmod +x ${resourceDir}/scripts/runLint.sh"
     sh "${resourceDir}/scripts/runLint.sh"
     sh "rm -rf ${resourceDir}"
 }
