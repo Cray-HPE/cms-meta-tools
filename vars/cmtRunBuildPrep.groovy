@@ -20,24 +20,9 @@
 //
 // (MIT License)
 
-def call(String... scriptfiles, String... otherfiles) {
-    echo "Log Stash: copyResource ${rname}"
-
-    def baseTmpDir = pwd(tmp: true)
-    def resourceDir = ${baseTmpDir}
-    resourceDir = sh(returnStdout: true, script: """#!/usr/bin/env bash
-        dirname = ${resourceDir}
-        while ! mkdir "\$dirname" ; do
-            dirname = "${resourceDir}.\$RANDOM"
-        done
-        echo "\$dirname"
-        """)
-    echo "resourceDir = ${resourceDir}"
-    writeFile(file: "${resourceDir}/, text: libraryResource(filename))
-
-    // Copy the given script from resources/ down into the workspace.
-    filenames.each { filename ->
-        writeFile(file: filename, text: libraryResource(filename))
-    }
-    sh "chmod +x ${filenames.join(' ')}"
+def call() {
+    echo "Log Stash: cmtRunLint"
+    def rDir = cmtCopyResources()
+    sh "${rDir}/scripts/runBuildPrep.sh"
+    sh "rm -rf ${rDir}"
 }

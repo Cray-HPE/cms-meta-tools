@@ -22,7 +22,6 @@
 
 def call() {
     echo "Log Stash: cmtRunLint"
-
     def rDir = cmtCopyResources()
     sh "${rDir}/scripts/runLint.sh"
     sh "rm -rf ${rDir}"
