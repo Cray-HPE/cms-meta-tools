@@ -25,7 +25,7 @@ def call() {
 
     def baseTmpDir = pwd(tmp: true)
     echo "baseTmpDir = ${baseTmpDir}"
-    def resourceDir = "${baseTmpDir}/resources"
+    def resourceDir = "${baseTmpDir}/tmp"
     echo "resourceDir = ${resourceDir}"
     resourceDir = sh(returnStdout: true, script: """#!/usr/bin/env bash
         dirname=${resourceDir}
@@ -37,8 +37,7 @@ def call() {
         echo "\$dirname"
         """).strip()
     echo "resourceDir = ${resourceDir}"
-    
-    sh "cp -pr ${cmtGetResourcesDir()}/* ${resourceDir}"
-    sh "${resourceDir}/scripts/runLint.sh"
+    sh "cp -pr ${cmtGetResourcesDir()} ${resourceDir}"
+    sh "${resourceDir}/resources/scripts/runLint.sh"
     sh "rm -rf ${resourceDir}"
 }
