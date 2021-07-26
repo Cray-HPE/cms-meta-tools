@@ -25,7 +25,7 @@ def call() {
 
     def baseTmpDir = pwd(tmp: true)
     echo "baseTmpDir = ${baseTmpDir}"
-    def resourceDir = baseTmpDir
+    def resourceDir = "${baseTmpDir}/resources"
     echo "resourceDir = ${resourceDir}"
     resourceDir = sh(returnStdout: true, script: """#!/usr/bin/env bash
         dirname=${resourceDir}
