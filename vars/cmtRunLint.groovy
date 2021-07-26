@@ -24,11 +24,15 @@ def call() {
     echo "Log Stash: cmtRunLint"
 
     def baseTmpDir = pwd(tmp: true)
+    echo "baseTmpDir = ${baseTmpDir}"
     def resourceDir = baseTmpDir
+    ecgo "resourceDir = ${resourceDir}"
     resourceDir = sh(returnStdout: true, script: """#!/usr/bin/env bash
         dirname = ${resourceDir}
-        while ! mkdir "\$dirname" ; do
-            dirname = "${resourceDir}.\$RANDOM"
+        echo "dirname = \${dirname}" 1>&2
+        echo "resourceDir = ${resourceDir}" 1>&2
+        while ! mkdir "\${dirname}" ; do
+            dirname = "${resourceDir}.\${RANDOM}"
         done
         echo "\$dirname"
         """)
