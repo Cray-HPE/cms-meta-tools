@@ -192,7 +192,9 @@ class DeveloperBranchOnlyDigitsStrategy(DeveloperBranchNameStrategy):
     def __call__(self):
         value = super().__call__()
         value = re.sub('[^0-9]', '', value)
-        return value
+        if value:
+            return value
+        return "0"
 
 class CommitCountStrategy(GitBasedStrategy):
     """
