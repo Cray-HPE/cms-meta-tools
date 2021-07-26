@@ -1,3 +1,5 @@
+#!/usr/bin/env sh
+
 # Copyright 2021 Hewlett Packard Enterprise Development LP
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
@@ -20,37 +22,8 @@
 #
 # (MIT License)
 
-NAME ?= cms-meta-tools
-VERSION ?= $(shell ./version.sh)
-
-SPEC_VERSION ?= ${VERSION}
-BUILD_METADATA ?= "1~development~$(shell git rev-parse --short HEAD)"
-BUILD_DIR ?= $(PWD)/dist/rpmbuild
-
-SPEC_NAME ?= cms-meta-tools
-SPEC_FILE ?= ${SPEC_NAME}.spec
-SOURCE_NAME ?= ${SPEC_NAME}-${SPEC_VERSION}
-SOURCE_PATH := ${BUILD_DIR}/SOURCES/${SOURCE_NAME}.tar.bz2
-
-all : build_prep prepare lint rpm
-rpm: rpm_package_source rpm_build_source rpm_build
-
-build_prep:
-		./scripts/runBuildPrep.sh
-
-prepare:
-		rm -rf $(BUILD_DIR)
-		mkdir -p $(BUILD_DIR)/SPECS $(BUILD_DIR)/SOURCES
-		cp $(SPEC_FILE) $(BUILD_DIR)/SPECS/
-
-lint:
-		./scripts/runLint.sh
-
-rpm_package_source:
-		tar --transform 'flags=r;s,^,/$(SOURCE_NAME)/,' --exclude .git --exclude dist -cvjf $(SOURCE_PATH) .
-
-rpm_build_source:
-		BUILD_METADATA=$(BUILD_METADATA) rpmbuild -ts $(SOURCE_PATH) --define "_topdir $(BUILD_DIR)"
-
-rpm_build:
-		BUILD_METADATA=$(BUILD_METADATA) rpmbuild -ba $(SPEC_FILE) --nodeps --define "_topdir $(BUILD_DIR)"
+# Temporary script just to show executable .version file concept works
+# The version number below should be bumped when making changes, just like
+# you usually would
+echo 1.0.24
+exit 0
