@@ -20,25 +20,16 @@
 //
 // (MIT License)
 
-def call() {
-    echo "Log Stash: cmtRunLint"
+import groovy.transform.SourceURI
+import java.nio.file.Path
+import java.nio.file.Paths
 
-    def baseTmpDir = pwd(tmp: true)
-    echo "baseTmpDir = ${baseTmpDir}"
-    def resourceDir = "${baseTmpDir}/resources"
-    echo "resourceDir = ${resourceDir}"
-    resourceDir = sh(returnStdout: true, script: """#!/usr/bin/env bash
-        dirname=${resourceDir}
-        echo "dirname = \${dirname}" 1>&2
-        echo "resourceDir = ${resourceDir}" 1>&2
-        while ! mkdir "\${dirname}" ; do
-            dirname="${resourceDir}.\${RANDOM}"
-        done
-        echo "\$dirname"
-        """).strip()
-    echo "resourceDir = ${resourceDir}"
-    
-    sh "cp -pr ${get_resource_dir()}/* ${resourceDir}"
-    sh "${resourceDir}/scripts/runLint.sh"
-    sh "rm -rf ${resourceDir}"
+class ScriptSourceUri {
+    @SourceURI
+    static URI uri
+}
+
+def call() {
+    Path scriptLocation = Paths.get(ScriptSourceUri.uri)
+    return scriptLocation.getParent().getParent().resolve('resources').toString()
 }
