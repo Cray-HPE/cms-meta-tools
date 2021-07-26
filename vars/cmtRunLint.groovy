@@ -28,11 +28,11 @@ def call() {
     def resourceDir = baseTmpDir
     echo "resourceDir = ${resourceDir}"
     resourceDir = sh(returnStdout: true, script: """#!/usr/bin/env bash
-        dirname = ${resourceDir}
+        dirname=${resourceDir}
         echo "dirname = \${dirname}" 1>&2
         echo "resourceDir = ${resourceDir}" 1>&2
         while ! mkdir "\${dirname}" ; do
-            dirname = "${resourceDir}.\${RANDOM}"
+            dirname="${resourceDir}.\${RANDOM}"
         done
         echo "\$dirname"
         """)
