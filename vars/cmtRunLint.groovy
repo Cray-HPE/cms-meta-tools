@@ -25,7 +25,7 @@ def call() {
 
     def baseTmpDir = pwd(tmp: true)
     echo "baseTmpDir = ${baseTmpDir}"
-    def resourceDir = "${baseTmpDir}/tmp"
+    def resourceDir = "${baseTmpDir}/resources"
     echo "resourceDir = ${resourceDir}"
     resourceDir = sh(returnStdout: true, script: """#!/usr/bin/env bash
         dirname=${resourceDir}
@@ -37,7 +37,29 @@ def call() {
         echo "\$dirname"
         """).strip()
     echo "resourceDir = ${resourceDir}"
-    sh "cp -pr ${cmtGetResourcesDir()} ${resourceDir}"
-    sh "${resourceDir}/resources/scripts/runLint.sh"
+    
+    def dirNames = [ "scripts", "copyright_license_check", "file_filter", "go_lint" ]
+    dirNames.each { dirname ->
+        sh "mkdir -p ${resourceDir}/${dirname}"
+    }
+
+    def lintScripts = [ 
+        "scripts/runLint.sh",
+        "file_filter/file_filter.py",
+        "file_filter/file_filter.sh",
+        "go_lint/go_lint.sh",
+        "copyright_license_check/copyright_license_check.sh" ]
+    def lintConf = [
+        "go_lint/go_lint.yaml",
+        "copyright_license_check/copyright_license_check.yaml" ]
+    lintConf.each { filename ->
+        writeFile(file: "${resourceDir}/${filename}", text: libraryResource(filename))
+    }
+    lintScripts.each { filename ->
+        writeFile(file: "${resourceDir}/${filename}", text: libraryResource(filename))
+        sh "chmod +x ${resourceDir}/${filename}"
+    }
+    sh "chmod +x ${resourceDir}/scripts/runLint.sh"
+    sh "${resourceDir}/scripts/runLint.sh"
     sh "rm -rf ${resourceDir}"
 }
