@@ -35,8 +35,8 @@ def call() {
             dirname="${resourceDir}.\${RANDOM}"
         done
         echo "\$dirname"
-        """)
-    echo "resourceDir = ${resourceDir}"  
+        """).strip()
+    echo "resourceDir = ${resourceDir}"
     sh(returnStdout: false, script: "mkdir -p ${resourceDir}/scripts ${resourceDir}/copyright_license_check ${resourceDir}/go_lint")
 
     def lintScripts = [ 
