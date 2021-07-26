@@ -37,7 +37,11 @@ def call() {
         echo "\$dirname"
         """).strip()
     echo "resourceDir = ${resourceDir}"
-    sh(returnStdout: false, script: "mkdir -p ${resourceDir}/scripts ${resourceDir}/copyright_license_check ${resourceDir}/go_lint")
+    
+    def dirNames = [ "scripts", "copyright_license_check", "go_lint" ]
+    dirNames.each { dirname ->
+        sh "mkdir -p ${resourceDir}/${dirname}"
+    }
 
     def lintScripts = [ 
         "scripts/runLint.sh",
