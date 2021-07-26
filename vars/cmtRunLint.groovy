@@ -24,7 +24,7 @@ def call() {
     echo "Log Stash: cmtRunLint"
 
     def baseTmpDir = pwd(tmp: true)
-    def resourceDir = ${baseTmpDir}
+    def resourceDir = baseTmpDir
     resourceDir = sh(returnStdout: true, script: """#!/usr/bin/env bash
         dirname = ${resourceDir}
         while ! mkdir "\$dirname" ; do
