@@ -54,3 +54,4 @@ rpm_build_source:
 
 rpm_build:
 		BUILD_METADATA=$(BUILD_METADATA) rpmbuild -ba $(SPEC_FILE) --nodeps --define "_topdir $(BUILD_DIR)"
+
