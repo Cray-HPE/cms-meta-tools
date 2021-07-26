@@ -21,7 +21,7 @@
 # (MIT License)
 
 NAME ?= cms-meta-tools
-VERSION ?= $(shell ./version.py)
+VERSION ?= $(shell ./resources/version_gen/version.py)
 
 SPEC_VERSION ?= ${VERSION}
 BUILD_METADATA ?= "1~development~$(shell git rev-parse --short HEAD)"

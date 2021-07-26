@@ -48,6 +48,7 @@ Prefix: /opt/cray/cms-meta-tools
 %define gldir %{cmtdir}/go_lint
 %define lvdir %{cmtdir}/latest_version
 %define uvdir %{cmtdir}/update_versions
+%define vgdir %{cmtdir}/version_gen
 %define scdir %{cmtdir}/scripts
 
 %description
@@ -83,6 +84,9 @@ install -m 755 resources/scripts/runLint.sh                                   %{
 install -m 755 -d                                                             %{buildroot}%{uvdir}/
 install -m 755 resources/update_versions/update_versions.sh                   %{buildroot}%{uvdir}
 
+install -m 755 -d                                                             %{buildroot}%{vgdir}/
+install -m 755 resources/version_gen/version.py                               %{buildroot}%{vgdir}
+
 %clean
 rm -f %{buildroot}%{clcdir}/copyright_license_check.sh
 rm -f %{buildroot}%{clcdir}/copyright_license_check.yaml
@@ -107,6 +111,9 @@ rmdir %{buildroot}%{scdir}
 
 rm -f %{buildroot}%{uvdir}/update_versions.sh
 rmdir %{buildroot}%{uvdir}
+
+rm -f %{buildroot}%{vgdir}/version.py
+rmdir %{buildroot}%{vgdir}
 
 rmdir %{buildroot}%{cmtdir}
 
@@ -136,5 +143,8 @@ rmdir %{buildroot}%{cmtdir}
 
 %dir %{uvdir}
 %attr(755, root, root) %{uvdir}/update_versions.sh
+
+%dir %{vgdir}
+%attr(755, root, root) %{vgdir}/version.py
 
 %changelog
