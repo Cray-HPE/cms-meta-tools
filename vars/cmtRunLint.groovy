@@ -38,7 +38,7 @@ def call() {
         """).strip()
     echo "resourceDir = ${resourceDir}"
     
-    sh "cp -pr ${get_resource_dir()}/* ${resourceDir}"
+    sh "cp -pr ${cmtGetResourcesDir()}/* ${resourceDir}"
     sh "${resourceDir}/scripts/runLint.sh"
     sh "rm -rf ${resourceDir}"
 }
