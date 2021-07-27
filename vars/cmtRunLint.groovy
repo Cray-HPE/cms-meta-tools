@@ -20,8 +20,12 @@
 //
 // (MIT License)
 
+@Library('csm-shared-library') _
+
 def call() {
     echo "Log Stash: cmtRunLint"
+    def a = getBuildIsStable()
+    echo "${a}"
     def rDir = cmtCopyResources()
     sh "${rDir}/scripts/runLint.sh"
     sh "rm -rf ${rDir}"
