@@ -20,7 +20,7 @@
 //
 // (MIT License)
 
-def call(versionScript: "") {
+def call(versionScript="") {
     echo "cmtGetVersion"
     
     def ver
