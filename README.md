@@ -11,6 +11,7 @@ version with SemVer.
 
 Create a branch from the default (master) branch and submit a PR. When the PR is merged and
 the base chart is ready to be released for use, merge the default branch to `release/stable`.
+Builds from the `release/stable` branch are stable and all others are "unstable".
 
 ## Versioning
 
@@ -19,19 +20,22 @@ only come from chart versions in the release/stable branch of this repository.
 
 ## Releases
 
-The charts in this repository are subcharts and do not follow the same versioning workflow as most other software.
+The charts in this repository are subcharts and do not follow the same versioning workflow as other CSM software.
 Charts that are built in master/dev/feature/bugfix branches have versions that are appended by the build pipeline
-with a build date and git hash, e.g. `cray-import-config-0.0.2-20201023091619+34aaf71`. However, branches with
-`release/` in their name will only use the Charts SemVer version, e.g. `cray-import-config-0.0.2`.
+with a build date and git hash, e.g. `cray-import-config-0.0.2-20201023091619+34aaf71`. However, charts from the
+`release/stable` branch will only use the Charts SemVer version, e.g. `cray-import-config-0.0.2`.
 
 Users of subcharts should only reference released versions in their chart's requirements file.
 
 When a subchart is ready to be released to consumers, merge master to `release/stable` and then
 communicate to users about the new versions.
 
-Do not use charts from any branch except `release/stable`.
+Do not use charts from any branch except `release/stable` unless you are testing and know
+what you are doing.
 
 Do not create `release/[product]-[version]` branches in this repository as they do not have meaning for base charts.
+
+Tags in this repository will not result in builds/releases.
 
 ## Contributors
 
