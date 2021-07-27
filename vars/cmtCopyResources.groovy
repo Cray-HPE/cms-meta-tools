@@ -21,7 +21,7 @@
 // (MIT License)
 
 def call() {
-    echo "Log Stash: cmtRunLint"
+    echo "cmtCopyResources"
 
     def dirNames = [ 
         "copyright_license_check", 
@@ -54,14 +54,12 @@ def call() {
 
     resourceDir = sh(returnStdout: true, script: """#!/usr/bin/env bash
         dirname=${resourceDir}.\$(date "+%y%m%d.%H%M%S").\$\$
-        echo "dirname = \${dirname}" 1>&2
-        echo "resourceDir = ${resourceDir}" 1>&2
         while ! mkdir "\${dirname}" ; do
             dirname="${resourceDir}.\$(date "+%y%m%d.%H%M%S").\$\$.\${RANDOM}"
         done
         echo "\$dirname"
         """).strip()
-    echo "resourceDir = ${resourceDir}"
+    echo "cmtCopyResources: resourceDir = ${resourceDir}"
     
     sh "mkdir -p ${dirNames.collect { "${resourceDir}/$it" }.join(' ')}"
 

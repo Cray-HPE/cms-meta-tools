@@ -21,7 +21,7 @@
 // (MIT License)
 
 def call() {
-    echo "Log Stash: cmtRunLint"
+    echo "cmtRunBuildPrep"
     def rDir = cmtCopyResources()
     sh "${rDir}/scripts/runBuildPrep.sh"
     sh "rm -rf ${rDir}"
