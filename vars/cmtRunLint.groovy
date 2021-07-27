@@ -22,7 +22,8 @@
 
 def call() {
     echo "Log Stash: cmtRunLint"
-    def a = csm-shared-library.getBuildIsStable()
+    library 'csm-shared-library'
+    def a = getBuildIsStable()
     echo "${a}"
     def rDir = cmtCopyResources()
     sh "${rDir}/scripts/runLint.sh"
