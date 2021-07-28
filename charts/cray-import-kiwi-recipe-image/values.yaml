@@ -33,7 +33,7 @@ import_job:
   PRODUCT_VERSION: ""
 
   # cray-ims-load-artifacts image variables, for more information see
-  # https://stash.us.cray.com/projects/SCMS/repos/ims-load-artifacts/browse/README.md
+  # https://github.com/Cray-HPE/ims-load-artifacts
   DOWNLOAD_PATH: "/tmp"
   IMS_URL: "http://cray-ims"
   LOG_LEVEL: "INFO"

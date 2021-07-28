@@ -23,7 +23,7 @@ catalog:
 import_job:
 
   # cf-gitea-import image variables, for more information see
-  # https://stash.us.cray.com/projects/SCMS/repos/cf-gitea-import/browse/README.md
+  # https://github.com/Cray-HPE/cf-gitea-import
   CF_IMPORT_PRODUCT_NAME: ""
   CF_IMPORT_PRODUCT_VERSION: ""
   CF_IMPORT_GITEA_URL: "http://gitea-vcs"
