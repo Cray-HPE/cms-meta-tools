@@ -33,17 +33,13 @@ pipeline {
     stages {
         stage("Lint") {
             steps {
-                script {
-                    sh "make lint"
-                }
+                sh "make lint"
             }
         }
 
         stage("Prepare") {
             steps {
-                script {
-                    sh "make chart_setup"
-                }
+                sh "make chart_setup"
             }
         }
 
@@ -51,16 +47,12 @@ pipeline {
             parallel {
                 stage("cray-import-config") {
                     steps {
-                        script {
-                            sh "make import_config_test"
-                        }
+                        sh "make import_config_test"
                     }
                 }
                 stage("cray-import-kiwi-recipe-image") {
                     steps {
-                        script {
-                            sh "make import_kiwi_recipe_image_test"
-                        }
+                        sh "make import_kiwi_recipe_image_test"
                     }
                 }
             }
@@ -70,26 +62,28 @@ pipeline {
             parallel {
                 stage("cray-import-config") {
                     steps {
-                        script {
-                            sh "make import_config_package"
-                        }
+                        sh "make import_config_package"
                     }
                 }
                 stage("cray-import-kiwi-recipe-image") {
                     steps {
-                        script {
-                            sh "make import_kiwi_recipe_image_package"
-                        }
+                        sh "make import_kiwi_recipe_image_package"
                     }
                 }
             }
         }
 
         stage("Publish") {
-            steps {
-                script {
-                    publishCsmHelmCharts(component: env.IMPORT_CONFIG_CHART_NAME, chartsPattern: "${env.IMPORT_CONFIG_CHART_NAME}*.tgz", chartsPath: "${WORKSPACE}/charts/.packaged", isStable: env.IS_STABLE)
-                    publishCsmHelmCharts(component: env.IMPORT_KIWI_RECIPE_IMAGE_CHART_NAME, chartsPattern: "${env.IMPORT_KIWI_RECIPE_IMAGE_CHART_NAME}*.tgz", chartsPath: "${WORKSPACE}/charts/.packaged", isStable: env.IS_STABLE)
+            parallel {
+                stage("cray-import-config") {
+                    steps {
+                        publishCsmHelmCharts(component: env.IMPORT_CONFIG_CHART_NAME, chartsPattern: "${env.IMPORT_CONFIG_CHART_NAME}*.tgz", chartsPath: "${WORKSPACE}/charts/.packaged", isStable: env.IS_STABLE)
+                    }
+                }
+                stage("cray-import-kiwi-recipe-image") {
+                    steps {
+                        publishCsmHelmCharts(component: env.IMPORT_KIWI_RECIPE_IMAGE_CHART_NAME, chartsPattern: "${env.IMPORT_KIWI_RECIPE_IMAGE_CHART_NAME}*.tgz", chartsPath: "${WORKSPACE}/charts/.packaged", isStable: env.IS_STABLE)
+                    }
                 }
             }
         }
