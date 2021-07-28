@@ -21,30 +21,29 @@
 # (MIT License)
 
 NAME ?= cms-meta-tools
-VERSION ?= $(shell ./version.py)
+RPM_VERSION ?= $(shell ./version.py)
 
-SPEC_VERSION ?= ${VERSION}
 BUILD_METADATA ?= "1~development~$(shell git rev-parse --short HEAD)"
 BUILD_DIR ?= $(PWD)/dist/rpmbuild
 
 SPEC_NAME ?= cms-meta-tools
 SPEC_FILE ?= ${SPEC_NAME}.spec
-SOURCE_NAME ?= ${SPEC_NAME}-${SPEC_VERSION}
+SOURCE_NAME ?= ${SPEC_NAME}-${RPM_VERSION}
 SOURCE_PATH := ${BUILD_DIR}/SOURCES/${SOURCE_NAME}.tar.bz2
 
-all : build_prep prepare lint rpm
+all : build_prep lint prepare rpm
 rpm: rpm_package_source rpm_build_source rpm_build
 
 build_prep:
 		./scripts/runBuildPrep.sh
 
+lint:
+		./scripts/runLint.sh
+
 prepare:
 		rm -rf $(BUILD_DIR)
 		mkdir -p $(BUILD_DIR)/SPECS $(BUILD_DIR)/SOURCES
 		cp $(SPEC_FILE) $(BUILD_DIR)/SPECS/
-
-lint:
-		./scripts/runLint.sh
 
 rpm_package_source:
 		tar --transform 'flags=r;s,^,/$(SOURCE_NAME)/,' --exclude .git --exclude dist -cvjf $(SOURCE_PATH) .

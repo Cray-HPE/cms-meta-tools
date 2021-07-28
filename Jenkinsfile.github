@@ -13,8 +13,7 @@ pipeline {
     environment {
         NAME = "cms-meta-tools"
         DESCRIPTION = "Cray Management System - Meta Tools"
-        VERSION = sh(returnStdout: true, script: "./version.py").trim()
-        SPEC_FILE = "cms-meta-tools.spec"
+        RPM_VERSION = sh(returnStdout: true, script: "./version.py").trim()
         IS_STABLE = getBuildIsStable()
         BUILD_METADATA = getRpmRevision(isStable: env.IS_STABLE)
     }
@@ -26,16 +25,21 @@ pipeline {
             }
         }
 
-        stage("Prepare") {
-            steps {
-                runLibraryScript("addRpmMetaData.sh", env.SPEC_FILE)
-                sh "make prepare"
-            }
-        }
-
         stage("Lint") {
             steps {
                 sh "make lint"
+            }
+        }
+
+        stage("Add RPM Metadata") {
+            steps {
+                runLibraryScript("addRpmMetaData.sh", "")
+            }
+        }
+
+        stage("Prepare") {
+            steps {
+                sh "make prepare"
             }
         }
 
@@ -47,10 +51,8 @@ pipeline {
 
         stage('Publish ') {
             steps {
-                script {
-                    publishCsmRpms(component: env.NAME, pattern: "dist/rpmbuild/RPMS/noarch/*.rpm", arch: "noarch", isStable: env.IS_STABLE)
-                    publishCsmRpms(component: env.NAME, pattern: "dist/rpmbuild/SRPMS/*.rpm", arch: "src", isStable: env.IS_STABLE)
-                }
+                publishCsmRpms(component: env.NAME, pattern: "dist/rpmbuild/RPMS/noarch/*.rpm", arch: "noarch", isStable: env.IS_STABLE)
+                publishCsmRpms(component: env.NAME, pattern: "dist/rpmbuild/SRPMS/*.rpm", arch: "src", isStable: env.IS_STABLE)
             }
         }
     }
