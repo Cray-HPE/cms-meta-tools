@@ -9,20 +9,21 @@ all cases you can copy them as-is with no edits required.
 
 2. The first step of your repo build should run runBuildPrep.sh
 
-3. The second step of your repo build sahould run runLint.sh
+3. The second step of your repo build should run runLint.sh
 
 That's it. If you need to customize the behavior of any of the tools being used, see the individual
 tool for details on how to provide it with a configuration file, or look at another CMS repo which
-is already using them.
+is already using it.
 
 ## Sample Script Listing
 
 ### [install_cms_meta_tools.sh](install_cms_meta_tools.sh)
 
-This script is required for any of the other scripts to work. Its job is to find the latest stable
+This script is required for any of the other sample scripts to work. Its job is to find the latest stable
 version of the cms-meta-tools RPM and extract its contents into a subdirectory of your current
 directory. Even though cms-meta-tools is packaged as an RPM, 
-**it does not install itself onto the global system**.
+**it does not install itself onto the global system**. And even though this RPM may be in a location
+with an OS version in the path, it only consists of scripts and is largely OS-agnostic.
 
 ### [runBuildPrep.sh](runBuildPrep.sh)
 
