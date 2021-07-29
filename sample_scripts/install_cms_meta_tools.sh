@@ -22,6 +22,11 @@
 #
 # (MIT License)
 
+# This file is based on the file of the same name in the sample_scripts 
+# directory in the cms-meta-tools repo. If you have problems with it, 
+# there may be a newer version of the file in that repo which corrects
+# the problem.
+
 # The following two variables determine which versions of the cms-meta-tools RPM will be considered
 REL_MAJOR=2
 REL_MINOR=0

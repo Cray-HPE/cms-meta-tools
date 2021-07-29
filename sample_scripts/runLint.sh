@@ -22,6 +22,11 @@
 #
 # (MIT License)
 
+# This file is based on the file of the same name in the sample_scripts 
+# directory in the cms-meta-tools repo. If you have problems with it, 
+# there may be a newer version of the file in that repo which corrects
+# the problem.
+
 ./install_cms_meta_tools.sh || exit 1
 RC=0
 ./cms_meta_tools/scripts/runLint.sh || RC=1

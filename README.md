@@ -2,6 +2,10 @@
 
 CMS team meta-tools repository. This collection of tools is used when building our other repos, but is not included as part of the product.
 
+## How to use in your repo
+
+For most CMS repos it will suffice to follow the instructions in the [sample_scripts](sample_scripts) folder.
+
 ## Meet the team
 
 ### [copyright_license_check](copyright_license_check)
@@ -24,10 +28,6 @@ Finds the latest version of a docker or helm image on arti.dev.cray.com
 
 Replaces placeholder strings in repo files with version strings read in
 from other repo files.
-
-## How to use in your repo
-
-There are a few different models, depending on what you are doing in your repo.
 
 ## Versioning
 Use [SemVer](http://semver.org/). The version is located in the [.version](.version) file. Any files
