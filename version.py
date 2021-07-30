@@ -192,7 +192,11 @@ class DeveloperBranchOnlyDigitsStrategy(DeveloperBranchNameStrategy):
     def __call__(self):
         value = super().__call__()
         value = re.sub('[^0-9]', '', value)
-        return value
+        if value:
+            # Strip leading 0s, because they aren't allowed in SemVer 2.0
+            return re.sub("^00*", "0", value)
+        # Return 0 if all else fails
+        return "0"
 
 class CommitCountStrategy(GitBasedStrategy):
     """
