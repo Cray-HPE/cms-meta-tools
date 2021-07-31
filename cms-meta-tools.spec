@@ -45,6 +45,7 @@ Prefix: /opt/cray/cms-meta-tools
 %define cmtdir /opt/cray/cms-meta-tools
 %define clcdir %{cmtdir}/copyright_license_check
 %define ffdir %{cmtdir}/file_filter
+%define gidir %{cmtdir}/git_info
 %define gldir %{cmtdir}/go_lint
 %define lvdir %{cmtdir}/latest_version
 %define uvdir %{cmtdir}/update_versions
@@ -59,6 +60,9 @@ Backend tools used to build and support Cray CMS projects
 %build
 
 %install
+install -m 755 -d                                                   %{buildroot}%{cmtdir}/
+install -m 755 version.py                                           %{buildroot}%{cmtdir}
+
 install -m 755 -d                                                   %{buildroot}%{clcdir}/
 install -m 755 copyright_license_check/copyright_license_check.sh   %{buildroot}%{clcdir}
 install -m 644 copyright_license_check/copyright_license_check.yaml %{buildroot}%{clcdir}
@@ -66,6 +70,9 @@ install -m 644 copyright_license_check/copyright_license_check.yaml %{buildroot}
 install -m 755 -d                                                   %{buildroot}%{ffdir}/
 install -m 755 file_filter/file_filter.py                           %{buildroot}%{ffdir}
 install -m 755 file_filter/file_filter.sh                           %{buildroot}%{ffdir}
+
+install -m 755 -d                                                   %{buildroot}%{gidir}/
+install -m 755 git_info/git_info.sh                                 %{buildroot}%{gidir}
 
 install -m 755 -d                                                   %{buildroot}%{gldir}/
 install -m 755 go_lint/go_lint.sh                                   %{buildroot}%{gldir}
@@ -92,6 +99,9 @@ rm -f %{buildroot}%{ffdir}/file_filter.py
 rm -f %{buildroot}%{ffdir}/file_filter.sh
 rmdir %{buildroot}%{ffdir}
 
+rm -f %{buildroot}%{gidir}/git_info.sh
+rmdir %{buildroot}%{gidir}
+
 rm -f %{buildroot}%{gldir}/go_lint.sh
 rm -f %{buildroot}%{gldir}/go_lint.yaml
 rmdir %{buildroot}%{gldir}
@@ -108,11 +118,14 @@ rmdir %{buildroot}%{scdir}
 rm -f %{buildroot}%{uvdir}/update_versions.sh
 rmdir %{buildroot}%{uvdir}
 
+rm -f %{buildroot}%{cmtdir}/version.py
 rmdir %{buildroot}%{cmtdir}
 
 %files
 %attr(-,root,root)
 %dir %{cmtdir}
+%attr(755, root, root) %{cmtdir}/version.py
+
 %dir %{clcdir}
 %attr(755, root, root) %{clcdir}/copyright_license_check.sh
 %attr(644, root, root) %{clcdir}/copyright_license_check.yaml
@@ -120,6 +133,9 @@ rmdir %{buildroot}%{cmtdir}
 %dir %{ffdir}
 %attr(755, root, root) %{ffdir}/file_filter.py
 %attr(755, root, root) %{ffdir}/file_filter.sh
+
+%dir %{gidir}
+%attr(755, root, root) %{gidir}/git_info.sh
 
 %dir %{gldir}
 %attr(755, root, root) %{gldir}/go_lint.sh
