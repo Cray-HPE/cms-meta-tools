@@ -34,6 +34,6 @@ $CMTROOT/latest_version/update_external_versions.sh || exit 1
 $CMTROOT/update_versions/update_versions.sh || exit 1
 
 # If there is no git_info.conf file, the script will exit with exit code 0
-$CMTROOT/git_info/git_info.sh
+$CMTROOT/git_info/git_info.sh || exit 1
 
 exit 0
