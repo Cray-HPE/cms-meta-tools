@@ -46,7 +46,7 @@ import re
 from distutils.version import LooseVersion
 
 THIS_FILE = __file__
-THIS_PROJECT = os.path.dirname(THIS_FILE)
+THIS_PROJECT = os.getcwd()
 BRANCH_PATTERN = re.compile("^\*\s(.*?)\s", re.M)
 
 def branch_name():
@@ -388,12 +388,28 @@ class ReleaseBranchVersion(BranchVersion):
     def is_a(branch_name):
         return branch_name.startswith('release/')
 
+    @property
+    def z(self):
+        if self._z:
+            return self._z
+        self._z = self.evaluate_strategies(self.z_strategies)
+        try:
+            # If there is a z_offset file we want to add it to our calculated z value
+            # This is primarily useful to avoid having dynamic version numbers collide
+            # with previously used static version numbers
+            with open(".z_offset", "rt") as z_offset_file:
+                self._z += int(z_offset_file.read().strip())
+        except FileNotFoundError:
+            # If there is no offset file, no problem
+            pass
+        return self._z
+
     def __init__(self):
         super().__init__()
         self.x_strategies.append(PinnedFileStrategy('x'))
         self.y_strategies.append(PinnedFileStrategy('y'))
         self.z_strategies.append(CommitsSinceChangedStrategy('z'))
-
+                
 
 class DeveloperBranchVersion(BranchVersion):
     """
