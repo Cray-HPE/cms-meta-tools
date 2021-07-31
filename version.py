@@ -398,7 +398,7 @@ class ReleaseBranchVersion(BranchVersion):
             # This is primarily useful to avoid having dynamic version numbers collide
             # with previously used static version numbers
             with open(".z_offset", "rt") as z_offset_file:
-                self._z += int(z_offset_file.read().strip())
+                self._z = str(int(z_offset_file.read().strip()) + int(self._z))
         except FileNotFoundError:
             # If there is no offset file, no problem
             pass
