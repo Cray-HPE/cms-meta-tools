@@ -147,8 +147,11 @@ while read vars; do
             rm -f "$TMPFILE"
         done
     elif [ "$type" = specfile ]; then
-        grep -Eq "^%changelog[[:space:]]*$" "$target" || 
-            error_exit "No %changelog line found in $target"
+        if ! grep -Eq "^%changelog[[:space:]]*$" "$target" ; then
+            myecho "No %changelog line found in $target -- appending one"
+            echo -e "\n\n%changelog" >> "$target" ||
+                error_exit "Error writing to $target"
+        fi
         myecho "Inserting git metadata into ${specfile} changelog"
         run_cmd sed "/^%changelog[[:space:]]*$/r ${CHANGELOG}" "$target" > "$TMPFILE" || 
             error_exit "Error writing to $TMPFILE"

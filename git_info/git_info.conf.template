@@ -21,6 +21,9 @@ chart: kubernetes/cray-crus/Chart.yaml
 # - branch: ${GIT_BRANCH}
 # - commit-date: ${GIT_COMMIT_DATE}
 # - commit-id: "${GIT_COMMIT_ID}
+#
+# If no %changelog line is found, one will be appended to the end of the file, followed
+# by the above lines
 
 specfile: cray-my-rpm.spec
 
