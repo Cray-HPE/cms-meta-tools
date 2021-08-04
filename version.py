@@ -43,11 +43,18 @@ original author: jsl
 import subprocess
 import os
 import re
+import sys
 from distutils.version import LooseVersion
 
 THIS_FILE = __file__
 THIS_PROJECT = os.getcwd()
 BRANCH_PATTERN = re.compile("^\*\s(.*?)\s", re.M)
+
+def myprint(s):
+    """
+    Allows us to print status or informational messages
+    """
+    print("version.py: %s" % s, file=sys.stderr)
 
 def branch_name():
     """
@@ -442,15 +449,21 @@ class DeveloperBranchVersion(BranchVersion):
 
 def version_factory():
     branch = branch_name()
+    myprint("branch = %s" % branch)
     # If the TAG_NAME environment variable exists and is not blank, then we consider ourselves
     # to be in a release branch
-    if os.environ.get('TAG_NAME', False):
+    tag_name = os.environ.get('TAG_NAME', False)
+    if tag_name:
+        myprint("TAG_NAME environment variable set to %s" % tag_name)
         return ReleaseBranchVersion()
     elif MasterBranchVersion.is_a(branch):
+        myprint("Looks like the master branch")
         return MasterBranchVersion()
     elif ReleaseBranchVersion.is_a(branch):
+        myprint("Looks like a release branch")
         return ReleaseBranchVersion()
     else:
+        myprint("Looks like a developer branch")
         return DeveloperBranchVersion()
 
 if __name__ == '__main__':
