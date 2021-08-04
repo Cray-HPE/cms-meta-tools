@@ -20,6 +20,9 @@
 #
 # (MIT License)
 
+# If you wish to perform a local build, you will need to clone or copy the contents of the
+# cms-meta-tools repo to ./cms_meta_tools
+
 CHART_PATH ?= charts
 
 IMPORT_CONFIG_CHART_NAME ?= "cray-import-config"
@@ -30,15 +33,10 @@ IMPORT_KIWI_RECIPE_IMAGE_CHART_VERSION ?= local
 
 HELM_UNITTEST_IMAGE ?= quintush/helm-unittest:3.3.0-0.2.5
 
-all: clone_cms_meta_tools runbuildprep lint chart_setup test package
+all: runbuildprep lint chart_setup test package
 
 test: import_config_test import_kiwi_recipe_image_test
 package: import_config_package import_kiwi_recipe_image_package
-
-# If you wish to perform a local build, you will need to clone or copy the contents of the
-# cms_meta_tools repo to ./cms_meta_tools
-clone_cms_meta_tools:
-		git clone --depth 1 --no-single-branch https://github.com/Cray-HPE/cms-meta-tools.git ./cms_meta_tools
 
 runbuildprep:
 		./cms_meta_tools/scripts/runBuildPrep.sh
