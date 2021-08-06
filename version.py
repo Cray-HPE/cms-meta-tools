@@ -170,9 +170,9 @@ class GitBasedStrategy(VersionStrategy):
     @property
     def commits(self):
         """
-        Returns a list of commits that are part of this branch.
+        Returns a list of commits that are part of this branch. Exclude merges.
         """
-        return subprocess.check_output(['git', 'log', '--pretty=format:%H'], cwd=THIS_PROJECT).decode('UTF-8').splitlines()
+        return subprocess.check_output(['git', 'log', '--pretty=format:%H', '--no-merges'], cwd=THIS_PROJECT).decode('UTF-8').splitlines()
 
 
 class DeveloperBranchNameStrategy(GitBasedStrategy):
@@ -274,7 +274,7 @@ class CommitsSinceChangedStrategy(GitBasedStrategy):
         Introspects the git history for the commit hash for the last change to affect our parent
         pinned version.
         """
-        return subprocess.check_output(['git', 'log', '--pretty=format:%H', '-n1', self.neighbor_pinned_strategy.pinned_path], cwd=THIS_PROJECT).decode('UTF-8').strip()
+        return subprocess.check_output(['git', 'log', '--pretty=format:%H', '--no-merges', '-n1', self.neighbor_pinned_strategy.pinned_path], cwd=THIS_PROJECT).decode('UTF-8').strip()
 
     @property
     def commits_since_neighbor_changed(self):
@@ -325,7 +325,7 @@ class BranchVersion(LooseVersion):
         """
         for strategy in strategies:
             value = strategy()
-            if value:
+            if value:                
                 return value
 
     @property
