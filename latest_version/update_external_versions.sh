@@ -42,6 +42,8 @@
 #
 # This script always calls the latest_version script with the --overwrite flag
 
+set -x
+
 CONFIGFILE="update_external_versions.conf"
 LVBASE=latest_version.sh
 

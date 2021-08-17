@@ -22,6 +22,8 @@
 #
 # (MIT License)
 
+set -x
+
 USAGE="\
 usage: latest_version.sh [--major x [--minor y]] 
                          [--docker | --helm] [--type <type>]
