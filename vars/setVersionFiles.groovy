@@ -30,7 +30,7 @@ def call() {
     ///////////////////
     // Base version
     ///////////////////
-    if fileExists('.version') {
+    if (fileExists('.version')) {
         // Using static versioning
         echo ".version file exists -- using static versioning"
         echo "Reading base version from .version"
