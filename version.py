@@ -357,6 +357,7 @@ class BranchVersion(LooseVersion):
         return '%s.%s.%s' % self.all_fields
 
     def __call__(self):
+        myprint("Version = %r" % (self))
         print('%r' %(self))
 
 
@@ -467,18 +468,16 @@ def version_factory():
     tag_name = os.environ.get('TAG_NAME', False)
     if tag_name:
         myprint("TAG_NAME environment variable set to %s" % tag_name)
-        v = ReleaseBranchVersion()
+        return ReleaseBranchVersion()
     elif MasterBranchVersion.is_a(branch):
         myprint("Looks like the master branch")
-        v = MasterBranchVersion()
+        return MasterBranchVersion()
     elif ReleaseBranchVersion.is_a(branch):
         myprint("Looks like a release branch")
-        v = ReleaseBranchVersion()
+        return ReleaseBranchVersion()
     else:
         myprint("Looks like a developer branch")
-        v = DeveloperBranchVersion()
-    myprint("Version = %s" % v)
-    return v
+        return DeveloperBranchVersion()
 
 if __name__ == '__main__':
     version_factory()()
