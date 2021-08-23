@@ -259,5 +259,8 @@ fi
 MYDIR=$(dirname ${BASH_SOURCE[0]})
 
 # Now call latest_version.py located in this directory
-$MYDIR/latest_version.py "--${DOCKER_HELM}" --file "$TMPFILE" --image "${IMAGE_NAME}" ${OPTIONAL_ARGS} > $OUTFILE
-exit $?
+UEV=$($MYDIR/latest_version.py "--${DOCKER_HELM}" --file "$TMPFILE" --image "${IMAGE_NAME}" ${OPTIONAL_ARGS}) || exit 1
+echo "Found version ${UEV} of ${IMAGE_NAME}" 1>&2
+echo "$UEV" > $OUTFILE && exit 0
+echo "ERROR: Error writing to $OUTFILE" 1>&2
+exit 1
