@@ -357,6 +357,7 @@ class BranchVersion(LooseVersion):
         return '%s.%s.%s' % self.all_fields
 
     def __call__(self):
+        myprint("Version = %r" % (self))
         print('%r' %(self))
 
 
@@ -437,6 +438,18 @@ class DeveloperBranchVersion(BranchVersion):
     @staticmethod
     def is_a(self):
         return True # We're not picky.
+
+    @property
+    def y(self):
+        if self._y:
+            return self._y
+        yval = self.evaluate_strategies(self.y_strategies)
+        if yval == '0':
+            # Dev branches already have a major number of 0. We do not want them
+            # to also have a minor number of 0, because we reserved 0.0.z for master
+            yval='1'
+        self._y = yval
+        return self._y
 
     def __init__(self):
         super().__init__()
