@@ -467,16 +467,18 @@ def version_factory():
     tag_name = os.environ.get('TAG_NAME', False)
     if tag_name:
         myprint("TAG_NAME environment variable set to %s" % tag_name)
-        return ReleaseBranchVersion()
+        v = ReleaseBranchVersion()
     elif MasterBranchVersion.is_a(branch):
         myprint("Looks like the master branch")
-        return MasterBranchVersion()
+        v = MasterBranchVersion()
     elif ReleaseBranchVersion.is_a(branch):
         myprint("Looks like a release branch")
-        return ReleaseBranchVersion()
+        v = ReleaseBranchVersion()
     else:
         myprint("Looks like a developer branch")
-        return DeveloperBranchVersion()
+        v = DeveloperBranchVersion()
+    myprint("Version = %s" % v)
+    return v
 
 if __name__ == '__main__':
     version_factory()()
