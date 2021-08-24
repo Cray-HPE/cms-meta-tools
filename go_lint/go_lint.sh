@@ -23,14 +23,24 @@
 # (MIT License)
 
 # Very simple scanner for Go files which runs the gofmt linter on them
-# 
+#
 # It should be called from the root of the target repo
 # Usage: go_lint.sh
 
 TMPFILE1=/tmp/.go_lint.$$.$RANDOM.tmp.1
 TMPFILE2=/tmp/.go_lint.$$.$RANDOM.tmp.2
+GL_CONF="go_lint.yaml"
+MYDIR="go_lint"
+MYNAME="go_lint.sh"
 
-function scan_file {
+function err_exit
+{
+    echo "$MYNAME: ERROR: $*" 1>&2
+    exit 1
+}
+
+function scan_file
+{
     local out
     local rc
     echo -n "Scanning $1 with gofmt... "
@@ -53,11 +63,37 @@ function scan_file {
     return 0
 }
 
-GL_CONF="go_lint.yaml"
+function run_cmd_verify_dir
+{
+    out=$("$@") || err_exit "Command failed: $*"
+    [ -n "$out" ] || err_exit "Command gave blank outut: $*"
+    [ -e "$out" ] || err_exit "Nonexistent path ($out) given by command: $*"
+    [ -d "$out" ] || err_exit "Non-directory path ($out) given by command: $*"
+}
 
 # Default config file should be located in the same directory as this script
-GL_DIR=$(dirname ${BASH_SOURCE[0]})
-echo "gl should be located in directory $GL_DIR"
+# This conditional makes the script more Mac-friendly
+if [ -n "${CMS_META_TOOLS_PATH}" ] && [ -f "${CMS_META_TOOLS_PATH}/${MYDIR}/${MYNAME}" ]; then
+    echo "CMS_META_TOOLS_PATH is set to $CMS_META_TOOLS_PATH"
+    GL_DIR="${CMS_META_TOOLS_PATH}/${MYDIR}"
+elif [ -n "${BASH_SOURCE[0]}" ]; then
+    run_cmd_verify_dir dirname "${BASH_SOURCE[0]}"
+    GL_DIR="$out"
+    # Export CMS_META_TOOLS_PATH environment variable so any other scripts we call
+    # can use it, rather than repeating this stuff
+    export CMS_META_TOOLS_PATH="${GL_DIR}/.."
+else
+    # MacOS. In this case, try realpath
+    run_cmd_verify_dir dirname "$0"
+    run_cmd_verify_dir realpath "$out"
+    GL_DIR="$out"
+    # Export CMS_META_TOOLS_PATH environment variable so any other scripts we call
+    # can use it, rather than repeating this stuff
+    export CMS_META_TOOLS_PATH="${GL_DIR}/.."
+fi
+[ -f "${GL_DIR}/$MYNAME" ] || err_exit "$MYNAME not found in directory $GL_DIR"
+
+echo "go_lint is be located in directory $GL_DIR"
 DEFAULT_GL_CONF="$GL_DIR/$GL_CONF"
 if [ -s "$DEFAULT_GL_CONF" ]; then
     echo "Located default gl config file: $DEFAULT_GL_CONF"
@@ -66,16 +102,8 @@ else
         echo "File is zero size: $DEFAULT_GL_CONF"
     elif [ -e "$DEFAULT_GL_CONF" ]; then
         echo "Exists but is not a file: $DEFAULT_GL_CONF"
-    elif [ -d "$GL_DIR" ]; then
-        echo "$GL_DIR directory exists but does not contain $GL_CONF"
-    elif [ -e "$GL_DIR" ]; then
-        echo "$GL_DIR exists but is not a directory"
-    else
-        echo "Does not exist: $GL_DIR"
     fi
-    echo "BASH_SOURCE = ${BASH_SOURCE[*]}"
-    echo "ERROR: Unable to locate gl directory and/or config file $GL_CONF" 1>&2
-    exit 1
+    err_exit "Unable to locate gl config file $GL_CONF"
 fi
 
 REPO_GL_CONF=./$GL_CONF
@@ -88,7 +116,7 @@ fi
 
 FF_SH="file_filter.sh"
 # file_filter script should be in a sibling directory to this one
-FF_DIR="$GL_DIR/../file_filter"
+FF_DIR="${CMS_META_TOOLS_PATH}/file_filter"
 FF_TARGETS="$FF_DIR/$FF_SH"
 if [ -x "$FF_TARGETS" ] && [ -s "$FF_TARGETS" ]; then
     echo "Located $FF_SH in $FF_DIR"
@@ -108,9 +136,7 @@ else
     else
         echo "Does not exist: $FF_DIR"
     fi
-    echo "BASH_SOURCE = ${BASH_SOURCE[*]}"
-    echo "ERROR: Problem with $FF_SH in $FF_DIR directory." 1>&2
-    exit 1
+    err_exit "Problem with $FF_SH in $FF_DIR directory"
 fi
 
 if ! git ls-files --empty-directory > $TMPFILE1 ; then

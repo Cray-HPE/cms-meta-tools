@@ -23,8 +23,54 @@
 # (MIT License)
 
 # Find my directory, so I know where to find my friends
-MYDIR=$(dirname ${BASH_SOURCE[0]})
-CMTROOT=$MYDIR/..
+MYDIR="scripts"
+MYNAME="runLint.sh"
+
+function error
+{
+    echo "$MYNAME: ERROR: $*" 1>&2
+}
+
+function err_exit
+{
+    error "$*"
+    exit 1
+}
+
+function run_cmd
+{
+    local rc
+    "$@"
+    rc=$?
+    [ $rc -ne 0 ] && error "Command failed with rc $rc: $*"
+    return $rc
+}
+
+function run_cmd_verify_dir
+{
+    out=$("$@") || err_exit "Command failed: $*"
+    [ -n "$out" ] || err_exit "Command gave blank outut: $*"
+    [ -e "$out" ] || err_exit "Nonexistent path ($out) given by command: $*"
+    [ -d "$out" ] || err_exit "Non-directory path ($out) given by command: $*"
+}
+
+if [ -n "${CMS_META_TOOLS_PATH}" ] && [ -f "${CMS_META_TOOLS_PATH}/${MYDIR}/${MYNAME}" ]; then
+    echo "CMS_META_TOOLS_PATH is set to $CMS_META_TOOLS_PATH"
+elif [ -n "${BASH_SOURCE[0]}" ]; then
+    run_cmd_verify_dir dirname "${BASH_SOURCE[0]}"
+    # Export CMS_META_TOOLS_PATH environment variable so any other scripts we call
+    # can use it, rather than repeating this stuff
+    export CMS_META_TOOLS_PATH="${out}/.."
+    echo "Setting CMS_META_TOOLS_PATH to $CMS_META_TOOLS_PATH (used BASH_SOURCE[0])"
+else
+    # MacOS. In this case, try realpath
+    run_cmd_verify_dir dirname "$0"
+    run_cmd_verify_dir realpath "$out"
+    # Export CMS_META_TOOLS_PATH environment variable so any other scripts we call
+    # can use it, rather than repeating this stuff
+    export CMS_META_TOOLS_PATH="${out}/.."
+    echo "Setting CMS_META_TOOLS_PATH to $CMS_META_TOOLS_PATH (used realpath)"
+fi
 
 # These do not take long to run, and do not depend on each other, so we let
 # them run even if one fails, so the build can report all problems found.
@@ -32,10 +78,10 @@ RC=0
 
 # No config file is needed for this tool. The defaults are fine in many cases,
 # but it should run in every repo.
-$CMTROOT/copyright_license_check/copyright_license_check.sh || RC=1
+run_cmd "${CMS_META_TOOLS_PATH}/copyright_license_check/copyright_license_check.sh" || RC=1
 
 # If there is no go code in the repo, this tool will do nothing and have
 # exit code 0
-$CMTROOT/go_lint/go_lint.sh || RC=1
+run_cmd "${CMS_META_TOOLS_PATH}/go_lint/go_lint.sh" || RC=1
 
 exit $RC

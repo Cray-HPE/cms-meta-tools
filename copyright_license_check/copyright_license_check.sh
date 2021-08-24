@@ -28,8 +28,18 @@
 
 TMPFILE1=/tmp/.copyright_license_check.$$.$RANDOM.tmp.1
 TMPFILE2=/tmp/.copyright_license_check.$$.$RANDOM.tmp.2
+CLC_CONF="copyright_license_check.yaml"
+MYDIR="copyright_license_check"
+MYNAME="copyright_license_check.sh"
 
-function scan_file {
+function err_exit
+{
+    echo "$MYNAME: ERROR: $*" 1>&2
+    exit 1
+}
+
+function scan_file
+{
     echo -n "Scanning $1... "
     # skip empty files
     if [ -s "$1" ]; then
@@ -62,10 +72,36 @@ function scan_file {
     return 0
 }
 
-CLC_CONF="copyright_license_check.yaml"
+function run_cmd_verify_dir
+{
+    out=$("$@") || err_exit "Command failed: $*"
+    [ -n "$out" ] || err_exit "Command gave blank outut: $*"
+    [ -e "$out" ] || err_exit "Nonexistent path ($out) given by command: $*"
+    [ -d "$out" ] || err_exit "Non-directory path ($out) given by command: $*"
+}
 
 # Default config file should be located in the same directory as this script
-CLC_DIR=$(dirname ${BASH_SOURCE[0]})
+# This conditional makes the script more Mac-friendly
+if [ -n "${CMS_META_TOOLS_PATH}" ] && [ -f "${CMS_META_TOOLS_PATH}/${MYDIR}/${MYNAME}" ]; then
+    echo "CMS_META_TOOLS_PATH is set to $CMS_META_TOOLS_PATH"
+    CLC_DIR="${CMS_META_TOOLS_PATH}/${MYDIR}"
+elif [ -n "${BASH_SOURCE[0]}" ]; then
+    run_cmd_verify_dir dirname "${BASH_SOURCE[0]}"
+    CLC_DIR="$out"
+    # Export CMS_META_TOOLS_PATH environment variable so any other scripts we call
+    # can use it, rather than repeating this stuff
+    export CMS_META_TOOLS_PATH="${CLC_DIR}/.."
+else
+    # MacOS. In this case, try realpath
+    run_cmd_verify_dir dirname "$0"
+    run_cmd_verify_dir realpath "$out"
+    CLC_DIR="$out"
+    # Export CMS_META_TOOLS_PATH environment variable so any other scripts we call
+    # can use it, rather than repeating this stuff
+    export CMS_META_TOOLS_PATH="${CLC_DIR}/.."
+fi
+[ -f "${CLC_DIR}/$MYNAME" ] || err_exit "$MYNAME not found in directory $CLC_DIR"
+
 echo "clc should be located in directory $CLC_DIR"
 DEFAULT_CLC_CONF="$CLC_DIR/$CLC_CONF"
 if [ -s "$DEFAULT_CLC_CONF" ]; then
@@ -75,16 +111,8 @@ else
         echo "File is zero size: $DEFAULT_CLC_CONF"
     elif [ -e "$DEFAULT_CLC_CONF" ]; then
         echo "Exists but is not a file: $DEFAULT_CLC_CONF"
-    elif [ -d "$CLC_DIR" ]; then
-        echo "$CLC_DIR directory exists but does not contain $CLC_CONF"
-    elif [ -e "$CLC_DIR" ]; then
-        echo "$CLC_DIR exists but is not a directory"
-    else
-        echo "Does not exist: $CLC_DIR"
     fi
-    echo "BASH_SOURCE = ${BASH_SOURCE[*]}"
-    echo "ERROR: Unable to locate clc directory and/or config file $CLC_CONF" 1>&2
-    exit 1
+    err_exit "Unable to locate clc directory and/or config file $CLC_CONF"
 fi
 
 REPO_CLC_CONF=./$CLC_CONF
@@ -97,7 +125,7 @@ fi
 
 FF_SH="file_filter.sh"
 # file_filter script should be in a sibling directory to this one
-FF_DIR="$CLC_DIR/../file_filter"
+FF_DIR="${CMS_META_TOOLS_PATH}/file_filter"
 FF_TARGETS="$FF_DIR/$FF_SH"
 if [ -x "$FF_TARGETS" ] && [ -s "$FF_TARGETS" ]; then
     echo "Located $FF_SH in $FF_DIR"
@@ -117,9 +145,7 @@ else
     else
         echo "Does not exist: $FF_DIR"
     fi
-    echo "BASH_SOURCE = ${BASH_SOURCE[*]}"
-    echo "ERROR: Problem with $FF_SH in $FF_DIR directory." 1>&2
-    exit 1
+    err_exit "Problem with $FF_SH in $FF_DIR directory"
 fi
 
 if ! git ls-files --empty-directory > $TMPFILE1 ; then

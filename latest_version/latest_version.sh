@@ -23,7 +23,7 @@
 # (MIT License)
 
 USAGE="\
-usage: latest_version.sh [--major x [--minor y]] 
+usage: latest_version.sh [--major x [--minor y]]
                          [--docker | --helm] [--type <type>]
                          [[--server <server>] [--team <team>]  | [--url <url>]]
                          [--outfile <file> [--overwrite]] image_name
@@ -71,6 +71,43 @@ function usage
     done
     exit 1
 }
+
+MYDIR="latest_version"
+MYNAME="latest_version.sh"
+
+function err_exit
+{
+    echo "$MYNAME: ERROR: $*" 1>&2
+    exit 1
+}
+
+function run_cmd_verify_dir
+{
+    out=$("$@") || err_exit "Command failed: $*"
+    [ -n "$out" ] || err_exit "Command gave blank outut: $*"
+    [ -e "$out" ] || err_exit "Nonexistent path ($out) given by command: $*"
+    [ -d "$out" ] || err_exit "Non-directory path ($out) given by command: $*"
+}
+
+if [ -n "${CMS_META_TOOLS_PATH}" ] && [ -f "${CMS_META_TOOLS_PATH}/${MYDIR}/${MYNAME}" ]; then
+    echo "CMS_META_TOOLS_PATH is set to $CMS_META_TOOLS_PATH"
+    LV_DIR="${CMS_META_TOOLS_PATH}/${MYDIR}"
+elif [ -n "${BASH_SOURCE[0]}" ]; then
+    run_cmd_verify_dir dirname "${BASH_SOURCE[0]}"
+    LV_DIR="$out"
+    # Export CMS_META_TOOLS_PATH environment variable so any other scripts we call
+    # can use it, rather than repeating this stuff
+    export CMS_META_TOOLS_PATH="${LV_DIR}/.."
+else
+    # MacOS. In this case, try realpath
+    run_cmd_verify_dir dirname "$0"
+    run_cmd_verify_dir realpath "$out"
+    LV_DIR="$out"
+    # Export CMS_META_TOOLS_PATH environment variable so any other scripts we call
+    # can use it, rather than repeating this stuff
+    export CMS_META_TOOLS_PATH="${LV_DIR}/.."
+fi
+[ -f "${LV_DIR}/$MYNAME" ] || err_exit "$MYNAME not found in directory $LV_DIR"
 
 IMAGE_NAME=""
 MAJOR=""
@@ -201,8 +238,7 @@ function get_python_yaml
             --trusted-host dst.us.cray.com \
             --index-url http://dst.us.cray.com/piprepo/simple
         if ! python3 -c "import yaml" ; then
-            echo "ERROR: Unable to install Python yaml module" 1>&2
-            exit 1
+            err_exit "Unable to install Python yaml module"
         fi
     fi
 }
@@ -237,8 +273,7 @@ fi
 echo "latest_version.sh: url=$URL" 1>&2
 
 if ! curl -sSf -o "$TMPFILE" "$URL" 1>&2 ; then
-    echo "ERROR: Command failed: curl -sSf -o $TMPFILE $URL" 1>&2
-    exit 1
+    err_exit "Command failed: curl -sSf -o $TMPFILE $URL"
 fi
 
 # Construct our list of optional arguments to latest_version.py
@@ -248,7 +283,7 @@ OPTIONAL_ARGS=""
 # using arti, because for arti the type is baked into the URL itself
 if [ -n "$TYPE" ] && [ "$SERVER" != "arti" ]; then
     OPTIONAL_ARGS="${OPTIONAL_ARGS} --type $TYPE"
-fi   
+fi
 if [ -n "$MAJOR" ]; then
     OPTIONAL_ARGS="${OPTIONAL_ARGS} --major $MAJOR"
     if [ -n "$MINOR" ]; then
@@ -256,10 +291,8 @@ if [ -n "$MAJOR" ]; then
     fi
 fi
 
-MYDIR=$(dirname ${BASH_SOURCE[0]})
-
 # Now call latest_version.py located in this directory
-UEV=$($MYDIR/latest_version.py "--${DOCKER_HELM}" --file "$TMPFILE" --image "${IMAGE_NAME}" ${OPTIONAL_ARGS}) || exit 1
+UEV=$("$LV_DIR/latest_version.py" "--${DOCKER_HELM}" --file "$TMPFILE" --image "${IMAGE_NAME}" ${OPTIONAL_ARGS}) || exit 1
 echo "Found version ${UEV} of ${IMAGE_NAME}" 1>&2
 echo "$UEV" > $OUTFILE && exit 0
 echo "ERROR: Error writing to $OUTFILE" 1>&2

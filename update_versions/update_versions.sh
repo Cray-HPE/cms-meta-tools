@@ -88,24 +88,26 @@ function process_file
     # $3 - string
     [ $# -eq 3 ] || 
         error_exit "PROGRAMMING LOGIC ERROR: process_file should get exactly 3 arguments but it received $#: $*"
+    local F VTAG VSTRING AFTER rc
     F="$1"
     VTAG="$2"
     VSTRING="$3"
     echo "Replacing version tags ($VTAG) in $F"
     grep -q "$VTAG" "$F" ||
         error_exit "Version tag ($VTAG) not found in file $F"
-    BEFORE="${F}.before"
-    run_cmd cp "$F" "$BEFORE"
-    run_cmd sed -i s/${VTAG}/${VSTRING}/g "$F"
-    echo "# diff \"$BEFORE\" \"$F\""
-    diff "$BEFORE" "$F"
+    AFTER="${F}.after"
+    run_cmd sed "s/${VTAG}/${VSTRING}/g" "$F" > "$AFTER" ||
+        error_exit "Error writing to $AFTER"
+    echo "# diff \"$AFTER\" \"$F\""
+    diff "$AFTER" "$F"
     rc=$?
     if [ $rc -eq 0 ]; then
         error_exit "diff reports no difference after tag replacement"
     elif [ $rc -ne 1 ]; then
         error_exit "diff encountered an error comparing the files"
     fi
-    run_cmd rm "$BEFORE"
+    run_cmd cp "$AFTER" "$F"
+    run_cmd rm -f "$AFTER"
     return 0
 }
 

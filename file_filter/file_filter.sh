@@ -22,23 +22,62 @@
 #
 # (MIT License)
 
+MYDIR="file_filter"
+MYNAME="file_filter.sh"
+
+function err_exit
+{
+    echo "$MYNAME: ERROR: $*" 1>&2
+    exit 1
+}
+
+function info
+{
+    echo "$MYNAME: $*" 1>&2
+}
+
+function run_cmd_verify_dir
+{
+    out=$("$@") || err_exit "Command failed: $*"
+    [ -n "$out" ] || err_exit "Command gave blank outut: $*"
+    [ -e "$out" ] || err_exit "Nonexistent path ($out) given by command: $*"
+    [ -d "$out" ] || err_exit "Non-directory path ($out) given by command: $*"
+}
+
+if [ -n "${CMS_META_TOOLS_PATH}" ] && [ -f "${CMS_META_TOOLS_PATH}/${MYDIR}/${MYNAME}" ]; then
+    info "CMS_META_TOOLS_PATH is set to $CMS_META_TOOLS_PATH"
+    FF_DIR="${CMS_META_TOOLS_PATH}/${MYDIR}"
+elif [ -n "${BASH_SOURCE[0]}" ]; then
+    run_cmd_verify_dir dirname "${BASH_SOURCE[0]}"
+    FF_DIR="$out"
+    # Export CMS_META_TOOLS_PATH environment variable so any other scripts we call
+    # can use it, rather than repeating this stuff
+    export CMS_META_TOOLS_PATH="${FF_DIR}/.."
+else
+    # MacOS. In this case, try realpath
+    run_cmd_verify_dir dirname "$0"
+    run_cmd_verify_dir realpath "$out"
+    FF_DIR="$out"
+    # Export CMS_META_TOOLS_PATH environment variable so any other scripts we call
+    # can use it, rather than repeating this stuff
+    export CMS_META_TOOLS_PATH="${FF_DIR}/.."
+fi
+[ -f "${FF_DIR}/$MYNAME" ] || err_exit "$MYNAME not found in directory $FF_DIR"
+
 # Test to see if yaml module is available
-if ! python3 -c "import yaml" ; then
+if ! python3 -c "import yaml" 1>&2 ; then
     # In case this is an alpine container
     apk add --no-cache py3-pip python3 > /dev/null 2>&1
-    python3 -m ensurepip
+    python3 -m ensurepip 1>&2
     pip3 install PyYAML \
         --no-cache-dir \
         --trusted-host dst.us.cray.com \
-        --index-url http://dst.us.cray.com/piprepo/simple
-    if ! python3 -c "import yaml" ; then
-        echo "ERROR: Unable to install Python yaml module" 1>&2
-        exit 1
+        --index-url http://dst.us.cray.com/piprepo/simple 1>&2
+    if ! python3 -c "import yaml" 1>&2 ; then
+        err_exit "Unable to install Python yaml module"
     fi
 fi
 
-MYDIR=$(dirname ${BASH_SOURCE[0]})
-
 # Now call file_filter located in this directory, with same arguments this script was passed
-$MYDIR/file_filter.py "$@"
+"${FF_DIR}"/file_filter.py "$@"
 exit $?
