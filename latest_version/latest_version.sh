@@ -22,6 +22,8 @@
 #
 # (MIT License)
 
+MYDIR=$(dirname ${BASH_SOURCE[0]})
+
 USAGE="\
 usage: latest_version.sh [--major x [--minor y]] 
                          [--docker | --helm] [--type <type>]
@@ -187,26 +189,6 @@ function parse_arguments
     fi
 }
 
-function get_python_yaml
-{
-    # Test to see if yaml module is available
-    echo "Testing to see if Python yaml module is present" 1>&2
-    if ! python3 -c "import yaml" ; then
-        # In case this is an alpine container
-        echo "Python yaml module not found -- trying to get it" 1>&2
-        apk add --no-cache py3-pip python3 > /dev/null 2>&1
-        python3 -m ensurepip
-        pip3 install PyYAML \
-            --no-cache-dir \
-            --trusted-host dst.us.cray.com \
-            --index-url http://dst.us.cray.com/piprepo/simple
-        if ! python3 -c "import yaml" ; then
-            echo "ERROR: Unable to install Python yaml module" 1>&2
-            exit 1
-        fi
-    fi
-}
-
 parse_arguments "$@"
 if [ -z "$URL" ]; then
     if [ "$SERVER" = "arti" ]; then
@@ -228,7 +210,8 @@ if [ -z "$URL" ]; then
 fi
 
 if [ "${DOCKER_HELM}" = helm ]; then
-    get_python_yaml 1>&2
+    # Test to see if yaml module is available
+    . "${MYDIR}/../utils/pyyaml.sh"
     TMPFILE="/tmp/.latest_version.sh.$$.$RANDOM.index.yaml"
 else
     TMPFILE="/tmp/.latest_version.sh.$$.$RANDOM.repository.catalog.json"
@@ -255,8 +238,6 @@ if [ -n "$MAJOR" ]; then
         OPTIONAL_ARGS="${OPTIONAL_ARGS} --minor $MINOR"
     fi
 fi
-
-MYDIR=$(dirname ${BASH_SOURCE[0]})
 
 # Now call latest_version.py located in this directory
 UEV=$($MYDIR/latest_version.py "--${DOCKER_HELM}" --file "$TMPFILE" --image "${IMAGE_NAME}" ${OPTIONAL_ARGS}) || exit 1

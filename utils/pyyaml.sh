@@ -1,5 +1,3 @@
-#!/usr/bin/env bash
-
 # Copyright 2021 Hewlett Packard Enterprise Development LP
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
@@ -22,11 +20,38 @@
 #
 # (MIT License)
 
-MYDIR=$(dirname ${BASH_SOURCE[0]})
+CMT_UTILS_DIR=$(dirname ${BASH_SOURCE[0]})
 
 # Test to see if yaml module is available
-. "${MYDIR}/../utils/pyyaml.sh"
+echo "Checking if yaml Python module is available" 1>&2
+PYMODDIR="${CMT_UTILS_DIR}/pymods"
+export PYTHONPATH="${PYTHONPATH}:${PYMODDIR}"
+if ! python3 -c "import yaml" >/dev/null 1>&2 ; then
+    echo "Installing yaml into $PYMODDIR" 1>&2
 
-# Now call file_filter located in this directory, with same arguments this script was passed
-"$MYDIR/file_filter.py" "$@"
-exit $?
+    # In case this is an alpine container
+    apk add --no-cache python3 > /dev/null 2>&1
+    apk add --no-cache py3-pip > /dev/null 2>&1
+    
+    python3 -m ensurepip 1>&2
+    pip3 install PyYAML \
+        --no-cache-dir \
+        --trusted-host arti.dev.cray.com \
+        --index-url https://arti.dev.cray.com:443/artifactory/api/pypi/pypi-remote/simple \
+        --ignore-installed \
+        --target="$PYMODDIR" \
+        --upgrade 1>&2
+
+    if ! python3 -c "import yaml" 1>&2 ; then
+        # Collect some debug information
+        ls "$PYMODDIR" 1>&2
+        python3 --version 1>&2
+        pip3 --version 1>&2
+        uname -a 1>&2
+        cat /etc/*release* 1>&2
+        pip3 list 1>&2
+
+        echo "ERROR: Unable to install Python yaml module" 1>&2
+        exit 1
+    fi
+fi
