@@ -115,7 +115,13 @@ while read vars; do
     else
         read -r type target
     fi <<< $(echo $vars | sed 's/:/ /')
-    if [ -z "$target" ]; then
+    if [ -z "$type" ]; then
+        # This should only be the case when our config file has no stanzas for us to process
+        # That is not necessarily a mistake -- it can be used if one only wants gitInfo.txt
+        # generated, but nothing else
+        echo "WARNING: It appears there are no stanzas in git_info.conf. If this is intentional, all is well." 1>&2
+        continue
+    elif [ -z "$target" ]; then
         error_exit "No target file specified for $type"
     elif [ ! -e "${target}" ]; then
         error_exit "${type} ${target} does not exist"
