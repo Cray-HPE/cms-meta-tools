@@ -50,6 +50,7 @@ Prefix: /opt/cray/cms-meta-tools
 %define lvdir %{cmtdir}/latest_version
 %define uvdir %{cmtdir}/update_versions
 %define scdir %{cmtdir}/scripts
+%define utdir %{cmtdir}/utils
 
 %description
 Backend tools used to build and support Cray CMS projects
@@ -90,6 +91,9 @@ install -m 755 scripts/runLint.sh                                   %{buildroot}
 install -m 755 -d                                                   %{buildroot}%{uvdir}/
 install -m 755 update_versions/update_versions.sh                   %{buildroot}%{uvdir}
 
+install -m 755 -d                                                   %{buildroot}%{utdir}/
+install -m 644 utils/pyyaml.sh		                                %{buildroot}%{utdir}
+
 %clean
 rm -f %{buildroot}%{clcdir}/copyright_license_check.sh
 rm -f %{buildroot}%{clcdir}/copyright_license_check.yaml
@@ -114,6 +118,9 @@ rmdir %{buildroot}%{lvdir}
 rm -f %{buildroot}%{scdir}/runBuildPrep.sh
 rm -f %{buildroot}%{scdir}/runLint.sh
 rmdir %{buildroot}%{scdir}
+
+rm -f %{buildroot}%{utdir}/pyyaml.sh
+rmdir %{buildroot}%{utdir}
 
 rm -f %{buildroot}%{uvdir}/update_versions.sh
 rmdir %{buildroot}%{uvdir}
@@ -152,5 +159,8 @@ rmdir %{buildroot}%{cmtdir}
 
 %dir %{uvdir}
 %attr(755, root, root) %{uvdir}/update_versions.sh
+
+%dir %{uvdir}
+%attr(644, root, root) %{utdir}/pyyaml.sh
 
 %changelog
