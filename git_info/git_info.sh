@@ -31,16 +31,16 @@
 
 GITINFO_CONFIG=git_info.conf
 GITINFO_OUTFILE=gitInfo.txt
-MYNAME=$(basename $0)
+MYNAME="git_info"
 
-function myecho
+function info
 {
-    echo "${MYNAME} $*"
+    echo "$MYNAME: $*"
 }
 
-function error_exit
+function err_exit
 {
-    myecho "ERROR: $*" 1>&2
+    info "ERROR: $*" 1>&2
     exit 1
 }
 
@@ -50,17 +50,34 @@ function run_cmd
     "$@"
     rc=$?
     if [ $rc -ne 0 ]; then
-        error_exit "Command failed with return code $rc: $*" 1>&2
+        err_exit "Command failed with return code $rc: $*" 1>&2
     fi
     return 0
 }
 
+function sed_diff_replace
+{
+    # usage: <target file> <tmp file> <sed command argument>
+    local target tmpfile sedarg
+    [ $# -ne 3 ] && err_exit "Programming error: sed_diff_replace expects 3 but received $# argument(s): $*"
+    target="$1"
+    tmpfile="$2"
+    sedarg="$3"
+    run_cmd sed "$sedarg" "$target" > "$tmpfile" || 
+        err_exit "sed command failed or error writing to $tmpfile"
+    diff "$target" "$tmpfile" && 
+        err_exit "sed command ran but no changes were made"
+    run_cmd cp "$tmpfile" "$target"
+    rm -f "$tmpfile"
+    return 0
+}
+
 if [ ! -e "${GITINFO_CONFIG}" ]; then
-    myecho "No ${GITINFO_CONFIG} found -- nothing to do"
+    info "No ${GITINFO_CONFIG} found -- nothing to do"
     exit 0
 elif [ ! -f "${GITINFO_CONFIG}" ]; then
     ls -al "${GITINFO_CONFIG}" 1>&2
-    error_exit "${GITINFO_CONFIG} exists but is not a file"
+    err_exit "${GITINFO_CONFIG} exists but is not a file"
 fi
 
 GIT_BRANCH=$(run_cmd git rev-parse --abbrev-ref HEAD)
@@ -72,9 +89,9 @@ run_cmd git log -n 1 --pretty=tformat:"%H %cI %cd" --date=format:"%a %b %d %Y" >
 read -r GIT_COMMIT_ID GIT_COMMIT_DATE GIT_COMMIT_CHANGELOG_DATE <<< $(head -1 "$TMPFILE")
 rm -f "$TMPFILE"
 echo "git branch: ${GIT_BRANCH}" > "${GITINFO_OUTFILE}" ||
-    error_exit "Unable to write to ${GITINFO_OUTFILE}"
+    err_exit "Unable to write to ${GITINFO_OUTFILE}"
 run_cmd git log --decorate=full --source -n 1 >> "${GITINFO_OUTFILE}"
-myecho "Created ${GITINFO_OUTFILE}:"
+info "Created ${GITINFO_OUTFILE}:"
 run_cmd cat "${GITINFO_OUTFILE}"
 
 CHART_ANNOTATIONS="\
@@ -103,9 +120,9 @@ while [ -e "$DOCKERCOPY" ]; do
 done
 
 echo "COPY ${GITINFO_OUTFILE} ${GITINFO_OUTFILE}" > "$DOCKERCOPY" ||
-    error_exit "Unable to write to $DOCKERCOPY"
+    err_exit "Unable to write to $DOCKERCOPY"
 
-myecho "Processing ${GITINFO_CONFIG}..."
+info "Processing ${GITINFO_CONFIG}..."
 while read vars; do
     type=""
     target=""
@@ -119,55 +136,45 @@ while read vars; do
         # This should only be the case when our config file has no stanzas for us to process
         # That is not necessarily a mistake -- it can be used if one only wants gitInfo.txt
         # generated, but nothing else
-        echo "WARNING: It appears there are no stanzas in git_info.conf. If this is intentional, all is well." 1>&2
+        info "WARNING: It appears there are no stanzas in git_info.conf. If this is intentional, all is well." 1>&2
         continue
     elif [ -z "$target" ]; then
-        error_exit "No target file specified for $type"
+        err_exit "No target file specified for $type"
     elif [ ! -e "${target}" ]; then
-        error_exit "${type} ${target} does not exist"
+        err_exit "${type} ${target} does not exist"
     elif [ ! -f "${target}" ]; then
         ls -al "${target}" 1>&2
-        error_exit "${type} ${target} exists but is not a regular file"
+        err_exit "${type} ${target} exists but is not a regular file"
     fi
     if [ "$type" = chart ]; then
         # Make copy of original file, for comparison
         run_cmd cp "$target" "$TMPFILE"
-        myecho "Appending git metadata to ${target}"
+        info "Appending git metadata to ${target}"
         echo "${CHART_ANNOTATIONS}" >> "${target}" || 
-            error_exit "Error appending to ${target}"
+            err_exit "Error appending to ${target}"
         diff "$target" "$TMPFILE" && 
-            error_exit "Append seemed to work but $target is unchanged"
+            err_exit "Append seemed to work but $target is unchanged"
         rm -f "$TMPFILE"
     elif [ "$type" = dockerfile ]; then
         [ -n "$clist" ] || 
-            error_exit "No container names specified for dockerfile $target"
+            err_exit "No container names specified for dockerfile $target"
         for cname in $clist ; do
             grep -Eq "^FROM .* as $cname[[:space:]]*$" "$target" ||
-                error_exit "No FROM line for $cname found in $target"
-            myecho "Adding line to copy git metadata into $cname in $target"
-            run_cmd sed "/^FROM .* as $cname[[:space:]]*$/r ${DOCKERCOPY}" "$target" > "$TMPFILE" || 
-                error_exit "Error writing to $TMPFILE"
-            diff "$target" "$TMPFILE" && 
-                error_exit "Append seemed to work but no changes were made"
-            run_cmd cp "$TMPFILE" "$target"
-            rm -f "$TMPFILE"
+                err_exit "No FROM line for $cname found in $target"
+            info "Adding line to copy git metadata into $cname in $target"
+            sed_diff_replace "$target" "$TMPFILE" "/^FROM .* as $cname[[:space:]]*$/r ${DOCKERCOPY}"
         done
     elif [ "$type" = specfile ]; then
         if ! grep -Eq "^%changelog[[:space:]]*$" "$target" ; then
-            myecho "No %changelog line found in $target -- appending one"
+            info "No %changelog line found in $target -- appending one"
             echo -e "\n\n%changelog" >> "$target" ||
-                error_exit "Error writing to $target"
+                err_exit "Error writing to $target"
         fi
-        myecho "Inserting git metadata into ${specfile} changelog"
-        run_cmd sed "/^%changelog[[:space:]]*$/r ${CHANGELOG}" "$target" > "$TMPFILE" || 
-            error_exit "Error writing to $TMPFILE"
-        diff "$target" "$TMPFILE" && 
-            error_exit "Append seemed to work but no changes were made"
-        run_cmd cp "$TMPFILE" "$target"
-        rm -f "$TMPFILE"
+        info "Inserting git metadata into ${specfile} changelog"
+        sed_diff_replace "$target" "$TMPFILE" "/^%changelog[[:space:]]*$/r ${CHANGELOG}"
     else
         # Should never see this, based on the grep command we run on the config file
-        error_exit "PROGRAMMING LOGIC ERROR: Unexpected value of vars = $vars"
+        err_exit "PROGRAMMING LOGIC ERROR: Unexpected value of vars = $vars"
     fi
 done <<-EOF
 $(grep -E '^(chart|dockerfile|specfile):' "${GITINFO_CONFIG}")
@@ -177,5 +184,5 @@ EOF
 [ -f "$CHANGELOG" ] && rm -f "$CHANGELOG"
 [ -f "$DOCKERCOPY" ] && rm -f "$DOCKERCOPY"
 
-myecho "SUCCESS"
+info "SUCCESS"
 exit 0

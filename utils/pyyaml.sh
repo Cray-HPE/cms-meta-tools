@@ -20,14 +20,69 @@
 #
 # (MIT License)
 
-CMT_UTILS_DIR=$(dirname ${BASH_SOURCE[0]})
+function pyyaml_info
+{
+    # If our parent script has $MYNAME set, include it:
+    if [ -n "$MYNAME" ]; then
+        echo "$MYNAME: pyyaml.sh: $*" 1>&2
+    else
+        echo "pyyaml.sh: $*" 1>&2
+    fi
+}
+
+function pyyaml_err
+{
+    pyyaml_info "ERROR: $*"
+}
+
+function pyyaml_err_exit
+{
+    # If our parent has err_exit defined, we'll use it
+    if declare -F | grep -wq err_exit; then
+        err_exit "pyyaml.sh: $*"
+        # We should not reach this line, but just in case the
+        # err_exit function does not do what we expect, we will
+        # continue this function to try a backup plan
+    fi
+    pyyaml_err "$*"
+    exit 1
+}
+
+function pyyaml_validate_dir
+{
+    [ $# -ne 1 ] && pyyaml_err_exit "Programming error: pyyaml_validate_dir expects exactly 1 but received $# arguments: $*"
+    if [ ! -e "$1" ]; then
+        pyyaml_err "Path does not exist: '$1'"
+        return 1
+    elif [ ! -d "$1" ]; then
+        ls -al "$1"
+        pyyaml_err "Path exists but is not a directory: '$1'"
+        return 1
+    fi
+    return 0
+}
+
+# This file assumes that any script sourcing it will have set the variable
+# CMS_META_TOOLS_PATH
+if [ -z "${CMS_META_TOOLS_PATH}" ]; then
+    pyyaml_err_exit "CMS_META_TOOLS_PATH variable not set"
+elif ! pyyaml_validate_dir "${CMS_META_TOOLS_PATH}" ; then
+    pyyaml_err_exit "CMS_META_TOOLS_PATH variable set to invalid path"
+elif ! pyyaml_validate_dir "${CMS_META_TOOLS_PATH}/utils" ; then
+    pyyaml_err_exit "utils directory should be in the directory set by CMS_META_TOOLS_PATH"
+fi
 
 # Test to see if yaml module is available
-echo "Checking if yaml Python module is available" 1>&2
-PYMODDIR="${CMT_UTILS_DIR}/pymods"
+pyyaml_info "Checking if yaml Python module is available" 1>&2
+
+# Create our local python modules directory, if needed
+PYMODDIR="${CMS_META_TOOLS_PATH}/pymods"
+
+# Add it to our PYTHONPATH variable
 export PYTHONPATH="${PYTHONPATH}:${PYMODDIR}"
+
 if ! python3 -c "import yaml" >/dev/null 1>&2 ; then
-    echo "Installing yaml into $PYMODDIR" 1>&2
+    pyyaml_info "Installing yaml into $PYMODDIR" 1>&2
 
     # In case this is an alpine container
     apk add --no-cache python3 > /dev/null 2>&1
@@ -51,7 +106,9 @@ if ! python3 -c "import yaml" >/dev/null 1>&2 ; then
         cat /etc/*release* 1>&2
         pip3 list 1>&2
 
-        echo "ERROR: Unable to install Python yaml module" 1>&2
+        pyyaml_info "ERROR: Unable to install Python yaml module" 1>&2
         exit 1
     fi
 fi
+
+pyyaml_info "Python yaml module is available"
