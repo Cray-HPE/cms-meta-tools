@@ -22,10 +22,8 @@
 #
 # (MIT License)
 
-MYDIR=$(dirname ${BASH_SOURCE[0]})
-
 USAGE="\
-usage: latest_version.sh [--major x [--minor y]] 
+usage: latest_version.sh [--major x [--minor y]]
                          [--docker | --helm] [--type <type>]
                          [[--server <server>] [--team <team>]  | [--url <url>]]
                          [--outfile <file> [--overwrite]] image_name
@@ -59,12 +57,15 @@ stable and unstable images by looking at the path to the images.
 Version is written to either the specified outfile or <image_name>.version if no outfile is specified.
 If the output file already exists, the script exits in error unless --overwrite is specified."
 
+MYDIR="latest_version"
+MYNAME="latest_version.sh"
+
 function usage
 {
-    echo "$USAGE"
+    echo "$USAGE" 1>&2
     echo
     if [ $# -eq 0 ]; then
-        echo "$USAGE_EXTRA"
+        echo "$USAGE_EXTRA" 1>&2
         exit 0
     fi
     while [ $# -gt 0 ]; do
@@ -73,6 +74,56 @@ function usage
     done
     exit 1
 }
+
+function info
+{
+    echo "$MYNAME: $*" 1>&2
+}
+
+function err_exit
+{
+    info "ERROR: $*" 1>&2
+    exit 1
+}
+
+function run_cmd_verify_dir
+{
+    out=$("$@") || err_exit "Command failed: $*"
+    [ -n "$out" ] || err_exit "Command gave blank outut: $*"
+    [ -e "$out" ] || err_exit "Nonexistent path ($out) given by command: $*"
+    [ -d "$out" ] || err_exit "Non-directory path ($out) given by command: $*"
+}
+
+[ -n "${CMS_META_TOOLS_PATH}" ] && info "CMS_META_TOOLS_PATH is set to $CMS_META_TOOLS_PATH"
+
+# If CMS_META_TOOLS_PATH variable is set to a valid value, we will defer to that
+if [ -n "${CMS_META_TOOLS_PATH}" ] && [ -f "${CMS_META_TOOLS_PATH}/${MYDIR}/${MYNAME}" ]; then
+    info "Using value from CMS_META_TOOLS_PATH variable"
+    MYDIR_PATH="${CMS_META_TOOLS_PATH}/${MYDIR}"
+# In this case, let's first try realpath, since it gives us the cleanest paths
+elif realpath / >/dev/null 2>&1 ; then
+    # realpath is available, so let's use that
+    run_cmd_verify_dir dirname "$0"
+    run_cmd_verify_dir realpath "$out"
+    MYDIR_PATH="$out"
+    # Export CMS_META_TOOLS_PATH environment variable so any other scripts we call
+    # can use it, rather than repeating this stuff
+    run_cmd_verify_dir realpath "${MYDIR_PATH}/.."
+    export CMS_META_TOOLS_PATH="$out"
+    info "Exported CMS_META_TOOLS_PATH as '${CMS_META_TOOLS_PATH}'"
+# Backup plan is to use BASH_SOURCE, but note that MacOS in particular does not support this
+elif [ -n "${BASH_SOURCE[0]}" ]; then
+    run_cmd_verify_dir dirname "${BASH_SOURCE[0]}"
+    MYDIR_PATH="$out"
+    # Export CMS_META_TOOLS_PATH environment variable so any other scripts we call
+    # can use it, rather than repeating this stuff
+    export CMS_META_TOOLS_PATH="${MYDIR_PATH}/.."
+    info "Exported CMS_META_TOOLS_PATH as '${CMS_META_TOOLS_PATH}'"
+else
+    info "realpath and BASH_SOURCE both unavailable"
+    err_exit "Unable to determine path to cms-meta-tools"
+fi
+[ -f "${MYDIR_PATH}/$MYNAME" ] || err_exit "$MYNAME not found in directory ${MYDIR_PATH}"
 
 IMAGE_NAME=""
 MAJOR=""
@@ -211,7 +262,7 @@ fi
 
 if [ "${DOCKER_HELM}" = helm ]; then
     # Test to see if yaml module is available
-    . "${MYDIR}/../utils/pyyaml.sh"
+    . "${CMS_META_TOOLS_PATH}/utils/pyyaml.sh"
     TMPFILE="/tmp/.latest_version.sh.$$.$RANDOM.index.yaml"
 else
     TMPFILE="/tmp/.latest_version.sh.$$.$RANDOM.repository.catalog.json"
@@ -220,8 +271,7 @@ fi
 echo "latest_version.sh: url=$URL" 1>&2
 
 if ! curl -sSf -o "$TMPFILE" "$URL" 1>&2 ; then
-    echo "ERROR: Command failed: curl -sSf -o $TMPFILE $URL" 1>&2
-    exit 1
+    err_exit "Command failed: curl -sSf -o $TMPFILE $URL"
 fi
 
 # Construct our list of optional arguments to latest_version.py
@@ -231,7 +281,7 @@ OPTIONAL_ARGS=""
 # using arti, because for arti the type is baked into the URL itself
 if [ -n "$TYPE" ] && [ "$SERVER" != "arti" ]; then
     OPTIONAL_ARGS="${OPTIONAL_ARGS} --type $TYPE"
-fi   
+fi
 if [ -n "$MAJOR" ]; then
     OPTIONAL_ARGS="${OPTIONAL_ARGS} --major $MAJOR"
     if [ -n "$MINOR" ]; then
@@ -240,8 +290,7 @@ if [ -n "$MAJOR" ]; then
 fi
 
 # Now call latest_version.py located in this directory
-UEV=$($MYDIR/latest_version.py "--${DOCKER_HELM}" --file "$TMPFILE" --image "${IMAGE_NAME}" ${OPTIONAL_ARGS}) || exit 1
-echo "Found version ${UEV} of ${IMAGE_NAME}" 1>&2
+UEV=$("$MYDIR_PATH/latest_version.py" "--${DOCKER_HELM}" --file "$TMPFILE" --image "${IMAGE_NAME}" ${OPTIONAL_ARGS}) || exit 1
+info "Found version ${UEV} of ${IMAGE_NAME}"
 echo "$UEV" > $OUTFILE && exit 0
-echo "ERROR: Error writing to $OUTFILE" 1>&2
-exit 1
+err_exit "Error writing to $OUTFILE"

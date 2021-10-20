@@ -22,11 +22,66 @@
 #
 # (MIT License)
 
-MYDIR=$(dirname ${BASH_SOURCE[0]})
+MYDIR="file_filter"
+MYNAME="file_filter.sh"
+
+function info
+{
+    echo "$MYNAME: $*" 1>&2
+}
+
+function err_exit
+{
+    info "ERROR: $*" 1>&2
+    exit 1
+}
+
+function run_cmd_verify_dir
+{
+    out=$("$@") || err_exit "Command failed: $*"
+    [ -n "$out" ] || err_exit "Command gave blank outut: $*"
+    [ -e "$out" ] || err_exit "Nonexistent path ($out) given by command: $*"
+    [ -d "$out" ] || err_exit "Non-directory path ($out) given by command: $*"
+}
+
+[ -n "${CMS_META_TOOLS_PATH}" ] && info "CMS_META_TOOLS_PATH is set to $CMS_META_TOOLS_PATH"
+
+# If CMS_META_TOOLS_PATH variable is set to a valid value, we will defer to that
+if [ -n "${CMS_META_TOOLS_PATH}" ] && [ -f "${CMS_META_TOOLS_PATH}/${MYDIR}/${MYNAME}" ]; then
+    info "Using value from CMS_META_TOOLS_PATH variable"
+    MYDIR_PATH="${CMS_META_TOOLS_PATH}/${MYDIR}"
+# In this case, let's first try realpath, since it gives us the cleanest paths
+elif realpath / >/dev/null 2>&1 ; then
+    # realpath is available, so let's use that
+    run_cmd_verify_dir dirname "$0"
+    run_cmd_verify_dir realpath "$out"
+    MYDIR_PATH="$out"
+    # Export CMS_META_TOOLS_PATH environment variable so any other scripts we call
+    # can use it, rather than repeating this stuff
+    run_cmd_verify_dir realpath "${MYDIR_PATH}/.."
+    export CMS_META_TOOLS_PATH="$out"
+    info "Exported CMS_META_TOOLS_PATH as '${CMS_META_TOOLS_PATH}'"
+# Backup plan is to use BASH_SOURCE, but note that MacOS in particular does not support this
+elif [ -n "${BASH_SOURCE[0]}" ]; then
+    run_cmd_verify_dir dirname "${BASH_SOURCE[0]}"
+    MYDIR_PATH="$out"
+    # Export CMS_META_TOOLS_PATH environment variable so any other scripts we call
+    # can use it, rather than repeating this stuff
+    export CMS_META_TOOLS_PATH="${MYDIR_PATH}/.."
+    info "Exported CMS_META_TOOLS_PATH as '${CMS_META_TOOLS_PATH}'"
+else
+    info "realpath and BASH_SOURCE both unavailable"
+    err_exit "Unable to determine path to cms-meta-tools"
+fi
+[ -f "${MYDIR_PATH}/$MYNAME" ] || err_exit "$MYNAME not found in directory ${MYDIR_PATH}"
+
+FF_PY_NAME=file_filter.py
+FF_PY_PATH="${MYDIR_PATH}/${FF_PY_NAME}"
+[ -f "${FF_PY_PATH}" ] || err_exit "${FF_PY_NAME} not found in directory ${MYDIR_PATH}"
 
 # Test to see if yaml module is available
-. "${MYDIR}/../utils/pyyaml.sh"
+. "${CMS_META_TOOLS_PATH}/utils/pyyaml.sh"
 
 # Now call file_filter located in this directory, with same arguments this script was passed
-"$MYDIR/file_filter.py" "$@"
+"${MYDIR_PATH}"/file_filter.py "$@"
 exit $?

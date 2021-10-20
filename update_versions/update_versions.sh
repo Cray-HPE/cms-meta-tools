@@ -69,15 +69,22 @@ CONFIGFILE="update_versions.conf"
 DEFAULT_VERSION_SOURCEFILE=".version"
 DEFAULT_VERSION_TAG="@VERSION@"
 
-function error_exit
+MYNAME="update_versions.sh"
+
+function info
 {
-    echo "ERROR: $*"
+    echo "$MYNAME: $*"
+}
+
+function err_exit
+{
+    info "ERROR: $*" 1>&2
     exit 1
 }
 
 function run_cmd
 {
-    "$@" || error_exit "Command failed with rc $?: $*"
+    "$@" || err_exit "Command failed with rc $?: $*"
     return 0
 }
 
@@ -87,25 +94,27 @@ function process_file
     # $2 - tag
     # $3 - string
     [ $# -eq 3 ] || 
-        error_exit "PROGRAMMING LOGIC ERROR: process_file should get exactly 3 arguments but it received $#: $*"
+        err_exit "PROGRAMMING LOGIC ERROR: process_file should get exactly 3 arguments but it received $#: $*"
+    local F VTAG VSTRING AFTER rc
     F="$1"
     VTAG="$2"
     VSTRING="$3"
-    echo "Replacing version tags ($VTAG) in $F"
+    info "Replacing version tags ($VTAG) in $F"
     grep -q "$VTAG" "$F" ||
-        error_exit "Version tag ($VTAG) not found in file $F"
-    BEFORE="${F}.before"
-    run_cmd cp "$F" "$BEFORE"
-    run_cmd sed -i s/${VTAG}/${VSTRING}/g "$F"
-    echo "# diff \"$BEFORE\" \"$F\""
-    diff "$BEFORE" "$F"
+        err_exit "Version tag ($VTAG) not found in file $F"
+    AFTER="${F}.after"
+    run_cmd sed "s/${VTAG}/${VSTRING}/g" "$F" > "$AFTER" ||
+        err_exit "Error writing to $AFTER"
+    info "# diff \"$AFTER\" \"$F\""
+    diff "$AFTER" "$F"
     rc=$?
     if [ $rc -eq 0 ]; then
-        error_exit "diff reports no difference after tag replacement"
+        err_exit "diff reports no difference after tag replacement"
     elif [ $rc -ne 1 ]; then
-        error_exit "diff encountered an error comparing the files"
+        err_exit "diff encountered an error comparing the files"
     fi
-    run_cmd rm "$BEFORE"
+    run_cmd cp "$AFTER" "$F"
+    run_cmd rm -f "$AFTER"
     return 0
 }
 
@@ -122,48 +131,48 @@ function update_tags
         elif [[ "$vars" =~ ^sourcefile ]]; then
             sourcefile=$(echo $vars | sed -e 's/^sourcefile:[[:space:]]*//' -e 's/[[:space:]]*$//')
             [ -e "$sourcefile" ] ||
-                error_exit "sourcefile ($sourcefile) specified in $CONFIGFILE does not exist"
+                err_exit "sourcefile ($sourcefile) specified in $CONFIGFILE does not exist"
             # Whenever we see a new sourcefile variable we need to invalidate our previous version string
             versionstring=""
         elif [[ "$vars" =~ ^targetfile ]]; then
             targetfile=$(echo $vars | sed -e 's/^targetfile:[[:space:]]*//' -e 's/[[:space:]]*$//')
             [ -e "$targetfile" ] ||
-                error_exit "targetfile ($targetfile) specified in $CONFIGFILE does not exist"
+                err_exit "targetfile ($targetfile) specified in $CONFIGFILE does not exist"
             # Process this file
             if [ -z "$versionstring" ]; then
                 # As part of the Great Version Uprising of 2021, if the version file is executable,
                 # we will execute it and use that as our version string. Otherwise we will read its
                 # contents as the version string
                 if [ -x "$sourcefile" ]; then
-                    echo "$sourcefile is executable -- executing it to obtain version string"
+                    info "$sourcefile is executable -- executing it to obtain version string"
                     versionstring=$(./"$sourcefile") ||
-                        error_exit "Failed to execute $sourcefile"
+                        err_exit "Failed to execute $sourcefile"
                 else
-                    echo "Reading version string from $sourcefile"
+                    info "Reading version string from $sourcefile"
                     versionstring=$(cat "$sourcefile") ||
-                        error_exit "Failed: cat $sourcefile"
+                        err_exit "Failed: cat $sourcefile"
                 fi
                 # Strip off any leading or trailing whitespace
                 versionstring=$(echo "$versionstring" | sed -e 's/^[[:space:]]*//g' -e 's/[[:space:]]*$//g')
-                echo "Version string from $sourcefile is \"$versionstring\""
+                info "Version string from $sourcefile is \"$versionstring\""
                 # Verify that it is a valid version string
                 if ! echo "$versionstring" | grep -Eq "$VPATTERN" ; then
-                    error_exit "Version string does not match expected format"
+                    err_exit "Version string does not match expected format"
                 fi
             fi
             process_file "$targetfile" "$tag" "$versionstring"
         else
             # Should never see this, based on the grep command we run on $CONFIGFILE
-            error_exit "PROGRAMMING LOGIC ERROR: Unexpected value of vars = $vars"
+            err_exit "PROGRAMMING LOGIC ERROR: Unexpected value of vars = $vars"
         fi
     done <<-EOF
-	$(grep -E '^(tag|sourcefile|targetfile):' $CONFIGFILE)
-	EOF
+    $(grep -E '^(tag|sourcefile|targetfile):' $CONFIGFILE)
+EOF
     return 0
 }
 
 if [ ! -e "$CONFIGFILE" ]; then
-    echo "$CONFIGFILE does not exist -- nothing to do"
+    info "$CONFIGFILE does not exist -- nothing to do"
     exit 0
 fi
 update_tags
