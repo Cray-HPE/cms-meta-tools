@@ -43,27 +43,42 @@
 # This script always calls the latest_version script with the --overwrite flag
 
 CONFIGFILE="update_external_versions.conf"
-LVBASE=latest_version.sh
+LVBASE="latest_version.sh"
+MYDIR="latest_version"
+MYNAME="update_external_versions.sh"
 
-function error_exit
+function info
 {
-    echo "ERROR: $*"
+    echo "$MYNAME: $*" 1>&2
+}
+
+function err_exit
+{
+    info "ERROR: $*" 1>&2
     exit 1
+}
+
+function run_cmd_verify_dir
+{
+    out=$("$@") || err_exit "Command failed: $*"
+    [ -n "$out" ] || err_exit "Command gave blank outut: $*"
+    [ -e "$out" ] || err_exit "Nonexistent path ($out) given by command: $*"
+    [ -d "$out" ] || err_exit "Non-directory path ($out) given by command: $*"
 }
 
 function run_cmd
 {
-    "$@" || error_exit "Command failed with rc $?: $*"
+    "$@" || err_exit "Command failed with rc $?: $*"
     return 0
 }
 
 function run_lvscript
 {
     if "$LVSCRIPT" "$@" ; then
-        echo "Success: $LVSCRIPT $*"
+        info "Success: $LVSCRIPT $*"
         return 0
     fi
-    error_exit "Failed: $LVSCRIPT $*"
+    err_exit "Failed: $LVSCRIPT $*"
 }
 
 function update_tags
@@ -77,7 +92,7 @@ function update_tags
         field_value=$(echo "$vars" | cut -d":" -f2-)
         if [ "$field_name" != image ] && [ -z "$image" ]; then
             # If image is not set, we should not be seeing any other fields
-            error_exit "Line in $CONFIGFILE is not part of an image stanza: $vars"
+            err_exit "Line in $CONFIGFILE is not part of an image stanza: $vars"
         fi
         case "$field_name" in
             "image")
@@ -95,7 +110,7 @@ function update_tags
                 if [ "$field_value" = docker ] || [ "$field_value" = helm ]; then
                     lv_args+=("--$field_value")
                 else
-                    error_exit "Source field may only be set to docker or helm. Invalid value: $field_value"
+                    err_exit "Source field may only be set to docker or helm. Invalid value: $field_value"
                 fi
                 ;;
             *)
@@ -105,11 +120,11 @@ function update_tags
                 ;;
         esac
     done <<-EOF
-	$(grep -E '^[[:space:]]*(image|major|minor|outfile|server|source|team|type|url):' $CONFIGFILE | 
+    $(grep -E '^[[:space:]]*(image|major|minor|outfile|server|source|team|type|url):' $CONFIGFILE |
         sed -e 's/^[[:space:]][[:space:]]*//' \
             -e 's/[[:space:]][[:space:]]*$//' \
             -e 's/^\([^:][^:]*\):[[:space:]][[:space:]]*/\1:/')
-	EOF
+EOF
     # The above grep/sed commands grab all of the lines with fields, strip off the whitespace
     # at the beginning of the line, end of the line, and between the : and the field value
 
@@ -121,18 +136,48 @@ function update_tags
     return 0
 }
 
+# We should be running from the root of the target repo, so the config file should
+# be found in this directory
 if [ ! -e "$CONFIGFILE" ]; then
-    echo "$CONFIGFILE does not exist -- nothing to do"
+    info "$CONFIGFILE does not exist -- nothing to do"
     exit 0
 fi
-MYDIR=$(dirname ${BASH_SOURCE[0]})
-LVSCRIPT="$MYDIR"/"$LVBASE"
-if [ ! -e "$LVSCRIPT" ]; then
-    error_exit "$LVSCRIPT does not exist"
-elif [ ! -f "$LVSCRIPT" ]; then
-    error_exit "$LVSCRIPT exists but is not a regular file"
-elif [ ! -x "$LVSCRIPT" ]; then
-    error_exit "$LVSCRIPT file exists but is not executable"
+
+[ -n "${CMS_META_TOOLS_PATH}" ] && info "CMS_META_TOOLS_PATH is set to $CMS_META_TOOLS_PATH"
+
+# If CMS_META_TOOLS_PATH variable is set to a valid value, we will defer to that
+if [ -n "${CMS_META_TOOLS_PATH}" ] && [ -f "${CMS_META_TOOLS_PATH}/${MYDIR}/${MYNAME}" ]; then
+    info "Using value from CMS_META_TOOLS_PATH variable"
+    MYDIR_PATH="${CMS_META_TOOLS_PATH}/${MYDIR}"
+# In this case, let's first try realpath, since it gives us the cleanest paths
+elif realpath / >/dev/null 2>&1 ; then
+    # realpath is available, so let's use that
+    run_cmd_verify_dir dirname "$0"
+    run_cmd_verify_dir realpath "$out"
+    MYDIR_PATH="$out"
+    # Export CMS_META_TOOLS_PATH environment variable so any other scripts we call
+    # can use it, rather than repeating this stuff
+    run_cmd_verify_dir realpath "${MYDIR_PATH}/.."
+    export CMS_META_TOOLS_PATH="$out"
+    info "Exported CMS_META_TOOLS_PATH as '${CMS_META_TOOLS_PATH}'"
+# Backup plan is to use BASH_SOURCE, but note that MacOS in particular does not support this
+elif [ -n "${BASH_SOURCE[0]}" ]; then
+    run_cmd_verify_dir dirname "${BASH_SOURCE[0]}"
+    MYDIR_PATH="$out"
+    # Export CMS_META_TOOLS_PATH environment variable so any other scripts we call
+    # can use it, rather than repeating this stuff
+    export CMS_META_TOOLS_PATH="${MYDIR_PATH}/.."
+    info "Exported CMS_META_TOOLS_PATH as '${CMS_META_TOOLS_PATH}'"
+else
+    info "realpath and BASH_SOURCE both unavailable"
+    err_exit "Unable to determine path to cms-meta-tools"
+fi
+[ -f "${MYDIR_PATH}/$MYNAME" ] || err_exit "$MYNAME not found in directory ${MYDIR_PATH}"
+
+LVSCRIPT="${MYDIR_PATH}/${LVBASE}"
+
+if [ ! -x "$LVSCRIPT" ]; then
+    err_exit "$LVSCRIPT file exists but is not executable"
 fi
 
 update_tags

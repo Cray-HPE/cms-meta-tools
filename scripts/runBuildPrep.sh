@@ -22,18 +22,72 @@
 # (MIT License)
 
 # Find my directory, so I know where to find my friends
-MYDIR=$(dirname ${BASH_SOURCE[0]})
-CMTROOT=$MYDIR/..
+MYDIR="scripts"
+MYNAME="runBuildPrep.sh"
+
+function info
+{
+    echo "$MYNAME: $*"
+}
+
+function err_exit
+{
+    info "ERROR: $*" 1>&2
+    exit 1
+}
+
+function run_cmd_exit
+{
+    "$@" || err_exit "Command failed: $*"
+}
+
+function run_cmd_verify_dir
+{
+    out=$("$@") || err_exit "Command failed: $*"
+    [ -n "$out" ] || err_exit "Command gave blank outut: $*"
+    [ -e "$out" ] || err_exit "Nonexistent path ($out) given by command: $*"
+    [ -d "$out" ] || err_exit "Non-directory path ($out) given by command: $*"
+}
+
+[ -n "${CMS_META_TOOLS_PATH}" ] && info "CMS_META_TOOLS_PATH is set to $CMS_META_TOOLS_PATH"
+
+# If CMS_META_TOOLS_PATH variable is set to a valid value, we will defer to that
+if [ -n "${CMS_META_TOOLS_PATH}" ] && [ -f "${CMS_META_TOOLS_PATH}/${MYDIR}/${MYNAME}" ]; then
+    info "Using value from CMS_META_TOOLS_PATH variable"
+    MYDIR_PATH="${CMS_META_TOOLS_PATH}/${MYDIR}"
+# In this case, let's first try realpath, since it gives us the cleanest paths
+elif realpath / >/dev/null 2>&1 ; then
+    # realpath is available, so let's use that
+    run_cmd_verify_dir dirname "$0"
+    run_cmd_verify_dir realpath "$out"
+    MYDIR_PATH="$out"
+    # Export CMS_META_TOOLS_PATH environment variable so any other scripts we call
+    # can use it, rather than repeating this stuff
+    run_cmd_verify_dir realpath "${MYDIR_PATH}/.."
+    export CMS_META_TOOLS_PATH="$out"
+    info "Exported CMS_META_TOOLS_PATH as '${CMS_META_TOOLS_PATH}'"
+# Backup plan is to use BASH_SOURCE, but note that MacOS in particular does not support this
+elif [ -n "${BASH_SOURCE[0]}" ]; then
+    run_cmd_verify_dir dirname "${BASH_SOURCE[0]}"
+    MYDIR_PATH="$out"
+    # Export CMS_META_TOOLS_PATH environment variable so any other scripts we call
+    # can use it, rather than repeating this stuff
+    export CMS_META_TOOLS_PATH="${MYDIR_PATH}/.."
+    info "Exported CMS_META_TOOLS_PATH as '${CMS_META_TOOLS_PATH}'"
+else
+    info "realpath and BASH_SOURCE both unavailable"
+    err_exit "Unable to determine path to cms-meta-tools"
+fi
 
 # If there is no external version conf file, the script will exit with exit code 0
 # If this script fails, we do not want to proceed to updating versions, since it likely
 # relies on this one having worked
-$CMTROOT/latest_version/update_external_versions.sh || exit 1
+run_cmd_exit "${CMS_META_TOOLS_PATH}/latest_version/update_external_versions.sh"
 
 # If there is no version conf file, the script will exit with exit code 0
-$CMTROOT/update_versions/update_versions.sh || exit 1
+run_cmd_exit "${CMS_META_TOOLS_PATH}/update_versions/update_versions.sh"
 
 # If there is no git_info.conf file, the script will exit with exit code 0
-$CMTROOT/git_info/git_info.sh || exit 1
+run_cmd_exit "${CMS_META_TOOLS_PATH}/git_info/git_info.sh"
 
 exit 0
