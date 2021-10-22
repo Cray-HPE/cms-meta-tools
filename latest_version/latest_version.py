@@ -23,13 +23,14 @@
 # (MIT License)
 
 # Usage: latest_version.py [--type image_type] [--nonstandard-versions-okay]
-#                          [[--major major# [--minor minor#]]
-#                          --file input_file --image image_name {--docker | --helm}
+#                          [[--major major# [--minor minor#]] [--rpm-name-outfile]
+#                          --file input_file --image image_name {--docker | --helm | --rpm}
 #
-# Parse the input_file (json file if docker, yaml if helm)
+# Parse the input_file (json file if docker, yaml if helm, plain text if RPMs)
 # Find all versions of the specified image, filtering for major and minor number if specified
 
-# image_type is used to filter stable vs unstable on algol60
+# image_type is used to filter stable vs unstable, for docker and helm (for RPMs, the filtering
+# is assumed to have been done before generating the input file)
 # For docker JSON files, "<type>/" will be prepended to the image name in the manifest listing.
 # For helm YAML files, "<type>/" will be prepended to the image name in the url field for an image
 
@@ -37,6 +38,9 @@
 # filtered to make sure they match the format described in update_versions.sh (essentially SemVer 2.0,
 # with a minor exception)
 
+# If --rpm and --rpm-name-outfile are specified, write the name of the RPM file with the latest version to that file.
+# If the file already exists, it will be overwritten.
+#
 # Print the version string of the latest version and exit code 0
 # Print error message and exit code 1 if there is a problem with any of the above
 
@@ -101,9 +105,11 @@ def parse_parameters():
         "--major": "major",
         "--minor": "minor",
         "--file": "input_file",
+        "--rpm-name-outfile": "rpm_name_outfile",
         "--image": "image_name",
-        "--docker": "docker_helm",
-        "--helm": "docker_helm" }
+        "--docker": "docker_helm_rpm",
+        "--helm": "docker_helm_rpm",
+        "--rpm": "docker_helm_rpm" }
     params = { pname: None for pname in argument_to_parameter_map.values() }
     cmd_line_args = sys.argv[1:]
     i=0
@@ -116,7 +122,7 @@ def parse_parameters():
             err_exit("Unrecognized flag: " + arg)
         if params[param_name] != None:
             err_exit("Duplicate or conflicting flag: " + arg)
-        elif arg in { "--docker", "--helm" }:
+        elif arg in { "--docker", "--helm", "--rpm" }:
             # Just strip off the leading --
             params[param_name] = arg[2:]
             continue
@@ -142,8 +148,8 @@ def parse_parameters():
         err_exit("Input file must be specified")
     elif params["image_name"] == None:
         err_exit("Image name must be specified")
-    elif params["docker_helm"] == None:
-        err_exit("--docker or --helm must be specified")
+    elif params["docker_helm_rpm"] == None:
+        err_exit("--docker, --helm, or --rpm must be specified")
     return params
 
 def is_int(s):
@@ -232,13 +238,14 @@ def compare_versions(a, b, prStripped=False):
     return compare_versions(aPrerelease, bPrerelease)
 
 params = parse_parameters()
-docker_helm = params["docker_helm"]
+docker_helm_rpm = params["docker_helm_rpm"]
 input_file = params["input_file"]
 image_name = params["image_name"]
 image_type = params["image_type"]
 major = params["major"]
 minor = params["minor"]
 version_format_filter = (params["no_version_format_filter"] != True)
+rpm_name_outfile = params["rpm_name_outfile"]
 
 if major == None:
     version_prefix = ""
@@ -248,7 +255,7 @@ else:
         version_prefix += "." + str(minor)
 
 # The first thing we will do is generate a list of ALL versions of our chosen image
-if docker_helm == "docker":
+if docker_helm_rpm == "docker":
     import json
     with open(input_file, "rt") as f:
         docker_data = json.load(f)
@@ -273,7 +280,7 @@ if docker_helm == "docker":
         field_index = 2
 
     all_versions = [ m.split('/')[field_index] for m in manifests if m.find(image_prefix) == 0 ]
-else:
+elif docker_helm_rpm == "helm":
     import yaml
     with open(input_file, "rt") as f:
         helm_data = yaml.safe_load(f)
@@ -291,6 +298,13 @@ else:
     # my_image_entries is now a list of dicts that have info on each version of our
     # image. So we need to turn that into a list of just version strings
     all_versions = [ mie["version"] for mie in my_image_entries ]
+else:
+    # RPM
+    with open(input_file, "rt") as f:
+        # Make a mapping between versions and RPM filenames
+        rpm_data = dict( [ tuple(line.rstrip().split(' ')) for line in f.readlines() ])
+    # Our list of all versions is just the keys to the rpm_data dictionary
+    all_versions = list(rpm_data.keys())
 
 if image_type == None:
     label="entries"
@@ -303,7 +317,7 @@ if len(all_versions) == 0:
     else:
         err_exit("No %s found for %s" % (label, image_name))
 elif version_format_filter:
-    # Filter out any versions which don't begin with #.#.# followed by 
+    # Filter out any versions which are not semver
     all_versions = [ ver for ver in all_versions if SEMVER_REGEX.fullmatch(ver) ]
     if len(all_versions) == 0:
         if version_prefix:
@@ -337,4 +351,9 @@ else:
 
 my_versions.sort(key=functools.cmp_to_key(compare_versions))
 print(my_versions[-1])
+
+# If this was an RPM, and if --rpm-name-outfile was specified, we need to write the filename
+if docker_helm_rpm == "rpm" and rpm_name_outfile:
+    with open(rpm_name_outfile, "wt", encoding="utf-8") as f:
+        f.write(f"{rpm_data[my_versions[-1]]}\n")
 sys.exit(0)

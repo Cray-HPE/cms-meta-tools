@@ -3,7 +3,11 @@
 # to the latest_versions tool. So in case of conflicting information, the defaults described
 # in that tool are the ones you should follow.
 
-# This file contains any number of stanzas of the following form:
+# This file contains any number of stanzas of the following forms:
+
+#########################################
+# Form 1: Docker images and helm charts
+#########################################
 #
 #image: image_name
 #    major: major number
@@ -78,6 +82,60 @@
 # in the file paths (like on arti.dev), the type parameter should be omitted entirely, otherwise
 # no images will be found.
 
+#########################################
+# Form 2: RPMs
+#########################################
+
+#rpm:  RPM_name
+#    major: major number
+#    minor: minor number
+#    outfile: target filename for version
+#    namefile: target filename for RPM filename
+#    urlfile: target filename for full URL to RPM
+#    server: algol60
+#    type: build type
+#    uri: algol60 URI
+#    url: custom URL
+#    archstrip: true or false
+#    arch: RPM arch
+#
+# For each such stanza, the only required field is the rpm field. This field
+# determines the name of the image whose latest version we wish to discover.
+#
+# The major and minor fields, if present, must contain nonnegative integers.
+# If specified, they constrain the RPM version search to versions with the
+# specified major and (if specified) minor number. If neither is specified, the
+# overall latest version of the RPM will be sought.
+#
+# If archstrip is true, then we filter for RPM filenames that end with
+# .<arch>.rpm (e.g. .x86_64.rpm, .src.rpm, .noarch.rpm, etc), and that
+# part of the filename will not be considered to be part of the version.
+# archstrip defaults to true.
+#
+# arch specifies the architecture of the RPM, for the purposes of the archstrip
+# field. If archstrip is false, this field may not be set. If archstrip is true,
+# this field defaults to the name of the directory that contains the RPM in
+# its URL path.
+#
+# outfile defines the name of the file that the version will be written to.
+# If not specified, it defaults to <RPM_name>.version
+#
+# If namefile is specified, the filename of the RPM with this version will be 
+# written to it. If unspecified, no such file is written.
+#
+# If urlfile is specified, the full URL to the RPM with this version will be
+# written to it. If unspecified, no such file is written.
+#
+# If server is not specified and url is not specified, server defaults to algol60.
+# The url field is mutually exclusive the with server, type, and uri fields.
+#
+# If the url field is specified:
+#    * That custom URL is where the tool will look for RPM files
+#
+# If the server is algol60, then:
+#    * If type is not specified, it defaults to stable
+#    * The tool will look for the RPM files in https://artifactory.algol60.net/artifactory/csm-rpms/hpe/<type>/<uri>/
+
 image: my_image_name
     major: 1
     minor: 7
@@ -94,3 +152,9 @@ image: another_image_name
 image: yet_another_image_name
     major: 1
     url: https://myserver.mil/helm/index.yaml
+
+rpm: cfs-state-reporter
+    major: 1
+    minor: 7
+    uri: sle-15sp3/cfs-state-reporter/x86_64
+    urlfile: cfs-state-reporter-rpm.url
