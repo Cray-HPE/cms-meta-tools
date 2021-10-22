@@ -90,21 +90,22 @@ function update_tags
     while read vars; do
         field_name=$(echo "$vars" | cut -d":" -f1)
         field_value=$(echo "$vars" | cut -d":" -f2-)
-        if [ "$field_name" != image ] && [ -z "$image" ]; then
+        if [ "$field_name" != image ] && [ "$field_name" != rpm ] && [ -z "$image" ]; then
             # If image is not set, we should not be seeing any other fields
-            err_exit "Line in $CONFIGFILE is not part of an image stanza: $vars"
+            err_exit "Line in $CONFIGFILE is not part of an image or rpm stanza: $vars"
         fi
         case "$field_name" in
-            "image")
-                # If we have an image name currently set, then
+            "image"|"rpm")
+                # If we have an image or rpm name currently set, then
                 # this means it is time to process it
                 if [ -n "$image" ]; then
                     run_lvscript "${lv_args[@]}"  "$image"
                 fi
-                # Set new image name, reset latest_version args, if any
-                image="$field_value"
+                # Set new image/rpm name, reset latest_version args
                 # We always include the overwrite argument
                 lv_args=("--overwrite")
+                image="$field_value"
+                [ "$field_name" = rpm ] && lv_args+=("--rpm")
                 ;;
             "source")
                 if [ "$field_value" = docker ] || [ "$field_value" = helm ]; then
@@ -114,13 +115,12 @@ function update_tags
                 fi
                 ;;
             *)
-                # For all other fields (major, minor, outfile, server, team, type, and url) the
-                # argument name is the same as the field name, so it's easy
+                # For all other fields the argument name is the same as the field name, so it's easy
                 lv_args+=("--$field_name" "$field_value")
                 ;;
         esac
     done <<-EOF
-    $(grep -E '^[[:space:]]*(image|major|minor|outfile|server|source|team|type|url):' $CONFIGFILE |
+    $(grep -E '^[[:space:]]*(arch|archstrip|image|major|minor|namefile|outfile|rpm|server|source|team|type|uri|url|urlfile):' $CONFIGFILE |
         sed -e 's/^[[:space:]][[:space:]]*//' \
             -e 's/[[:space:]][[:space:]]*$//' \
             -e 's/^\([^:][^:]*\):[[:space:]][[:space:]]*/\1:/')
@@ -128,10 +128,12 @@ EOF
     # The above grep/sed commands grab all of the lines with fields, strip off the whitespace
     # at the beginning of the line, end of the line, and between the : and the field value
 
-    # When we get here, unless the config file was empty, image will be set with one final stanza
+    # When we get here, unless the config file was empty, image or rpm will be set with one final stanza
     # to be processed
     if [ -n "$image" ]; then
         run_lvscript "${lv_args[@]}"  "$image"
+    elif [ -n "$rpm" ]; then
+        run_lvscript "${lv_args[@]}"  "$rpm"
     fi
     return 0
 }
