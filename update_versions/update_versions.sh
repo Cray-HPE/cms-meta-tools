@@ -35,9 +35,10 @@
 # Lines in the config file that do not begin with "sourcefile:", "tag:", or "targetfile:" are
 # ignored.
 
-# Version must be legal SemVer 2.0 pattern (see semver.org) with one permitted exception -- SemVer
-# requires the build metadata to be separated by a + character, but our internal build tools
-# prefer to use a _ for that purpose, for some perverse reason. So we permit that exception here.
+# Versions coming from the "sourcefile" tag must be legal SemVer 2.0 pattern (see semver.org)
+# with one permitted exception -- SemVer requires the build metadata to be separated by a +
+# character, but our internal build tools prefer to use a _ for that purpose, for some 
+# perverse reason. So we permit that exception here.
 
 # For all of these below specifications, note that a 0 by itself is not considered to be a leading 0
 NUM_PATTERN="0|[1-9][0-9]*"
@@ -64,6 +65,12 @@ BMD_PATTERN="${BID_PATTERN}([.]${BID_PATTERN})*"
 # After that is an optional hyphen and pre-release version
 # After those is an optional plus (or underscore) and build-metadata
 VPATTERN="^${BASE_VPATTERN}(-${PRV_PATTERN})?([+_]${BMD_PATTERN})?$"
+
+# For the sourcefile_nonsemver tag, we simply require that the string contain only
+# the following characters:
+# a-z A-Z 0-9 . , - _ : ; = + / (space) & @ ! $ % * ( ) | { } [ ] < > ? #
+CHAR_PATTERN='(]|[-a-zA-Z0-9.,_:;=+/ &@!$%*()|{}[<>?#])'
+NSVPATTERN="^${CHAR_PATTERN}${CHAR_PATTERN}*$"
 
 CONFIGFILE="update_versions.conf"
 DEFAULT_VERSION_SOURCEFILE=".version"
@@ -103,7 +110,7 @@ function process_file
     grep -q "$VTAG" "$F" ||
         err_exit "Version tag ($VTAG) not found in file $F"
     AFTER="${F}.after"
-    run_cmd sed "s/${VTAG}/${VSTRING}/g" "$F" > "$AFTER" ||
+    run_cmd sed "s'${VTAG}'${VSTRING}'g" "$F" > "$AFTER" ||
         err_exit "Error writing to $AFTER"
     info "# diff \"$AFTER\" \"$F\""
     diff "$AFTER" "$F"
@@ -113,28 +120,39 @@ function process_file
     elif [ $rc -ne 1 ]; then
         err_exit "diff encountered an error comparing the files"
     fi
-    run_cmd cp "$AFTER" "$F"
-    run_cmd rm -f "$AFTER"
+    run_cmd cp -v "$AFTER" "$F"
+    run_cmd rm -fv "$AFTER"
     return 0
 }
 
 function update_tags
 {
-    local tag sourcefile targetfile versionstring
+    local pattern sourcefile tag targetfile versionstring
     # Set defaults
     tag="$DEFAULT_VERSION_TAG"
     sourcefile="$DEFAULT_VERSION_SOURCEFILE"
+    pattern="$VPATTERN"
     versionstring=""
     while read vars; do
         if [[ "$vars" =~ ^tag: ]]; then
             tag=$(echo $vars | sed -e 's/^tag:[[:space:]]*//' -e 's/[[:space:]]*$//')
-        elif [[ "$vars" =~ ^sourcefile ]]; then
+        elif [[ "$vars" =~ ^sourcefile: ]]; then
             sourcefile=$(echo $vars | sed -e 's/^sourcefile:[[:space:]]*//' -e 's/[[:space:]]*$//')
+            # Since this is sourcefile tag, set semver pattern
+            pattern="$VPATTERN"
             [ -e "$sourcefile" ] ||
                 err_exit "sourcefile ($sourcefile) specified in $CONFIGFILE does not exist"
             # Whenever we see a new sourcefile variable we need to invalidate our previous version string
             versionstring=""
-        elif [[ "$vars" =~ ^targetfile ]]; then
+        elif [[ "$vars" =~ ^sourcefile_nosemver: ]]; then
+            sourcefile=$(echo $vars | sed -e 's/^sourcefile_nosemver:[[:space:]]*//' -e 's/[[:space:]]*$//')
+            # Since this is sourcefile_nosemver, set non-semver pattern
+            pattern="$NSVPATTERN"
+            [ -e "$sourcefile" ] ||
+                err_exit "sourcefile_nosemver ($sourcefile) specified in $CONFIGFILE does not exist"
+            # Whenever we see a new sourcefile variable we need to invalidate our previous version string
+            versionstring=""
+        elif [[ "$vars" =~ ^targetfile: ]]; then
             targetfile=$(echo $vars | sed -e 's/^targetfile:[[:space:]]*//' -e 's/[[:space:]]*$//')
             [ -e "$targetfile" ] ||
                 err_exit "targetfile ($targetfile) specified in $CONFIGFILE does not exist"
@@ -156,8 +174,8 @@ function update_tags
                 versionstring=$(echo "$versionstring" | sed -e 's/^[[:space:]]*//g' -e 's/[[:space:]]*$//g')
                 info "Version string from $sourcefile is \"$versionstring\""
                 # Verify that it is a valid version string
-                if ! echo "$versionstring" | grep -Eq "$VPATTERN" ; then
-                    err_exit "Version string does not match expected format"
+                if ! echo "$versionstring" | grep -Eq "$pattern" ; then
+                    err_exit "Version string does not match expected format for this source tag"
                 fi
             fi
             process_file "$targetfile" "$tag" "$versionstring"
@@ -166,7 +184,7 @@ function update_tags
             err_exit "PROGRAMMING LOGIC ERROR: Unexpected value of vars = $vars"
         fi
     done <<-EOF
-    $(grep -E '^(tag|sourcefile|targetfile):' $CONFIGFILE)
+    $(grep -E '^(tag|sourcefile|sourcefile_nosemver|targetfile):' $CONFIGFILE)
 EOF
     return 0
 }

@@ -1,7 +1,13 @@
 #tag: version tag string to be replaced (optional -- if unspecified @VERSION@ is assumed)
 #sourcefile: file to obtain the actual version from (optional -- if unspecified, .version is assumed)
 #            If this file is executable, it will be executed and the output will be used as the version string.
-#            Otherwise it will be read and its contents will be used as the version string.
+#            Otherwise it will be read and its contents will be used as the version string. The string is checked
+#            to verify it is valid semver (see update_versions.sh header for details)
+#
+#sourcefile_nosemver: Same as sourcefile except that the string it contains is not checked to make sure
+#                     it is valid semver. Instead, it simply must consist of legal characters:
+#                     a-z A-Z 0-9 . , - _ : ; = + / (space) & @ ! $ % * ( ) | { } [ ] < > ? #
+#
 #targetfile: file in which to have version tags replaced. When this line is reached, the replacement
 #            action is performed on this file.
 #
