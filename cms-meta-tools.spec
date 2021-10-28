@@ -92,7 +92,8 @@ install -m 755 -d                                                   %{buildroot}
 install -m 755 update_versions/update_versions.sh                   %{buildroot}%{uvdir}
 
 install -m 755 -d                                                   %{buildroot}%{utdir}/
-install -m 644 utils/pyyaml.sh		                                %{buildroot}%{utdir}
+install -m 644 utils/pyyaml.sh                                      %{buildroot}%{utdir}
+install -m 755 utils/zypper-patch.sh                                %{buildroot}%{utdir}
 
 %clean
 rm -f %{buildroot}%{clcdir}/copyright_license_check.sh
@@ -120,6 +121,7 @@ rm -f %{buildroot}%{scdir}/runLint.sh
 rmdir %{buildroot}%{scdir}
 
 rm -f %{buildroot}%{utdir}/pyyaml.sh
+rm -f %{buildroot}%{utdir}/zypper-patch.sh
 rmdir %{buildroot}%{utdir}
 
 rm -f %{buildroot}%{uvdir}/update_versions.sh
@@ -162,5 +164,6 @@ rmdir %{buildroot}%{cmtdir}
 
 %dir %{uvdir}
 %attr(644, root, root) %{utdir}/pyyaml.sh
+%attr(755, root, root) %{utdir}/zypper-patch.sh
 
 %changelog
