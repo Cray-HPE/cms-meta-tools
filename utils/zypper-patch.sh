@@ -31,6 +31,9 @@
 # Run with set -x to help with debugging
 set -x
 
+# Do a zypper refresh without -f, so we only refresh repos if needed
+zypper --non-interactive refresh
+
 # Apply necessary patches in a while loop. This is done because
 # the zypper patch command returns 103 when it has successfully applied
 # a patch to itself, but it needs to be re-run in order to apply the remaining
@@ -59,5 +62,5 @@ done
 [ $count -eq 10 ] && exit 103
 
 # Finally, clean up package caches and metadata
-zypper clean -a
+zypper --non-interactive clean -a
 exit $?
