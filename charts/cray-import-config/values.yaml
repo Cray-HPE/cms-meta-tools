@@ -1,21 +1,20 @@
 # Full image including repo, e.g. dtr.dev.cray.com/cray/config-image:1.2.3
-#                                         ^         ^         ^        ^
-#                                         |         |         |        |
-#                    ['config_image'] [registry]  [repo]    [name]   [tag]
+#                                                   ^                 ^
+#                                                   |                 |
+#                                             ['repository]         [tag]
 config_image:
-  registry: "dtr.dev.cray.com"
-  repo: cray
-  name: ""
-  tag: ""
+  image:
+    repository: ""
+    tag: ""
+    pullPolicy: IfNotPresent
 
 # Docker image that will update the product catalog with results of the import
 # of images and recipes. Specifies the product catalog ConfigMap as well.
 catalog:
   image:
-    registry: "dtr.dev.cray.com"
-    repo: cray
-    name: cray-product-catalog-update
+    repository: artifactory.algol60.net/csm-docker/stable/cray-product-catalog-update
     tag: 1.2.50
+    pullPolicy: IfNotPresent
 
   config_map: cray-product-catalog
   config_map_namespace: services
@@ -45,4 +44,3 @@ import_job:
   additionalContainers: []
   additionalVolumes: []
   nodeSelector: {}
-
