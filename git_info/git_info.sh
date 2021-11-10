@@ -94,13 +94,6 @@ run_cmd git log --decorate=full --source -n 1 >> "${GITINFO_OUTFILE}"
 info "Created ${GITINFO_OUTFILE}:"
 run_cmd cat "${GITINFO_OUTFILE}"
 
-CHART_ANNOTATIONS="\
-annotations:
-  git/branch: \"${GIT_BRANCH}\"
-  git/commit-date: \"${GIT_COMMIT_DATE}\"
-  git/commit-id: \"${GIT_COMMIT_ID}\"\
-"
-
 CHANGELOG=.git_info.specfile_changelog.tmp.$$.$RANDOM.$RANDOM
 while [ -e "$CHANGELOG" ]; do
     CHANGELOG=.git_info.specfile_changelog.tmp.$$.$RANDOM.$RANDOM
@@ -150,7 +143,11 @@ while read vars; do
         # Make copy of original file, for comparison
         run_cmd cp "$target" "$TMPFILE"
         info "Appending git metadata to ${target}"
-        echo "${CHART_ANNOTATIONS}" >> "${target}" || 
+        if ! grep -Eq '^annotations:[[:space:]]*$' "${target}"; then
+            echo "annotations:" >> "${target}" ||
+                err_exit "Error appending to ${target}"
+        fi
+        sed -e "s,^annotations:\s*$,annotations:\n  git/branch: \"${GIT_BRANCH}\"\n  git/commit-date: \"${GIT_COMMIT_DATE}\"\n  git/commit-id: \"${GIT_COMMIT_ID}\"," -i "${target}" ||
             err_exit "Error appending to ${target}"
         diff "$target" "$TMPFILE" && 
             err_exit "Append seemed to work but $target is unchanged"
