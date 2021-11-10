@@ -48,7 +48,6 @@ from distutils.version import LooseVersion
 
 THIS_FILE = __file__
 THIS_PROJECT = os.getcwd()
-BRANCH_PATTERN = re.compile("^\*\s(.*?)\s", re.M)
 
 def myprint(s):
     """
@@ -60,13 +59,7 @@ def branch_name():
     """
     Obtains a copy of the name of the current branch; make it work with all DST build pipelines.
     """
-    output = subprocess.check_output(['git', 'branch'], cwd=THIS_PROJECT).decode('UTF-8')
-    try:
-        return BRANCH_PATTERN.search(output).groups()[0]
-    except AttributeError:
-        # DST Build pipelines don't allow us to query the name of the version all the time.
-        # So, we can find it in the environment.
-        return os.environ.get('GIT_BRANCH', None)
+    return subprocess.check_output(['git', 'rev-parse', '--abbrev-ref', 'HEAD'], cwd=THIS_PROJECT).decode('UTF-8')
 
 class VersionStrategy():
     """
