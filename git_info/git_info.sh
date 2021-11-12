@@ -147,8 +147,9 @@ while read vars; do
             echo "annotations:" >> "${target}" ||
                 err_exit "Error appending to ${target}"
         fi
-        sed -e "s,^annotations:\s*$,annotations:\n  git/branch: \"${GIT_BRANCH}\"\n  git/commit-date: \"${GIT_COMMIT_DATE}\"\n  git/commit-id: \"${GIT_COMMIT_ID}\"," -i "${target}" ||
+        sed -e "s,^annotations:\s*$,annotations:\n  git/branch: \"${GIT_BRANCH}\"\n  git/commit-date: \"${GIT_COMMIT_DATE}\"\n  git/commit-id: \"${GIT_COMMIT_ID}\"," ${target} > ${target}.tmp ||
             err_exit "Error appending to ${target}"
+        mv ${target}.tmp ${target}
         diff "$target" "$TMPFILE" && 
             err_exit "Append seemed to work but $target is unchanged"
         rm -f "$TMPFILE"
