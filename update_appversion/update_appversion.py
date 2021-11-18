@@ -110,7 +110,7 @@ def main(chart_dir, app_version):
         chart_yaml_data = yaml.load(chart_yaml_file)
     # Set appVersion to the specified version
     chart_yaml_data["appVersion"] = app_version
-    f"Setting global appVersion to {app_version} in {chart_yaml_file}")
+    print(f"Setting appVersion to {app_version} in {chart_yaml_file}")
     # Now write back to the file
     yaml.dump(chart_yaml_data, chart_yaml_file)
 
