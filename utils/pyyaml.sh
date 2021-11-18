@@ -112,3 +112,42 @@ if ! python3 -c "import yaml" >/dev/null 1>&2 ; then
 fi
 
 pyyaml_info "Python yaml module is available"
+
+if ! python3 -c "from ruamel.yaml import YAML" >/dev/null 1>&2 ; then
+    pyyaml_info "Installing ruamel.yaml into $PYMODDIR" 1>&2
+
+    # In case this is an alpine container
+    apk add --no-cache python3 > /dev/null 2>&1
+    apk add --no-cache py3-pip > /dev/null 2>&1
+    
+    python3 -m ensurepip 1>&2
+    pip3 install pip setuptools wheel \
+        --no-cache-dir \
+        --trusted-host arti.dev.cray.com \
+        --index-url https://arti.dev.cray.com:443/artifactory/api/pypi/pypi-remote/simple \
+        --ignore-installed \
+        --target="$PYMODDIR" \
+        --upgrade 1>&2
+    pip3 install ruamel.yaml \
+        --no-cache-dir \
+        --trusted-host arti.dev.cray.com \
+        --index-url https://arti.dev.cray.com:443/artifactory/api/pypi/pypi-remote/simple \
+        --ignore-installed \
+        --target="$PYMODDIR" \
+        --upgrade 1>&2
+
+    if ! python3 -c "from ruamel.yaml import YAML" 1>&2 ; then
+        # Collect some debug information
+        ls "$PYMODDIR" 1>&2
+        python3 --version 1>&2
+        pip3 --version 1>&2
+        uname -a 1>&2
+        cat /etc/*release* 1>&2
+        pip3 list 1>&2
+
+        pyyaml_info "ERROR: Unable to install Python ruamel.yaml module" 1>&2
+        exit 1
+    fi
+fi
+
+pyyaml_info "Python ruamel.yaml module is available"
