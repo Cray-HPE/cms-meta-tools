@@ -48,6 +48,7 @@ Prefix: /opt/cray/cms-meta-tools
 %define gidir %{cmtdir}/git_info
 %define gldir %{cmtdir}/go_lint
 %define lvdir %{cmtdir}/latest_version
+%define uadir %{cmtdir}/update_appversion
 %define uvdir %{cmtdir}/update_versions
 %define scdir %{cmtdir}/scripts
 %define utdir %{cmtdir}/utils
@@ -87,6 +88,10 @@ install -m 755 latest_version/update_external_versions.sh           %{buildroot}
 install -m 755 -d                                                   %{buildroot}%{scdir}/
 install -m 755 scripts/runBuildPrep.sh                              %{buildroot}%{scdir}
 install -m 755 scripts/runLint.sh                                   %{buildroot}%{scdir}
+install -m 755 scripts/update-chart-app-version.sh                  %{buildroot}%{scdir}
+
+install -m 755 -d                                                   %{buildroot}%{uadir}/
+install -m 755 update_appversion/update_appversion.py               %{buildroot}%{uadir}
 
 install -m 755 -d                                                   %{buildroot}%{uvdir}/
 install -m 755 update_versions/update_versions.sh                   %{buildroot}%{uvdir}
@@ -117,10 +122,14 @@ rmdir %{buildroot}%{lvdir}
 
 rm -f %{buildroot}%{scdir}/runBuildPrep.sh
 rm -f %{buildroot}%{scdir}/runLint.sh
+rm -f %{buildroot}%{scdir}/update-chart-app-version.sh
 rmdir %{buildroot}%{scdir}
 
 rm -f %{buildroot}%{utdir}/pyyaml.sh
 rmdir %{buildroot}%{utdir}
+
+rm -f %{buildroot}%{uadir}/update_appversion.py
+rmdir %{buildroot}%{uadir}
 
 rm -f %{buildroot}%{uvdir}/update_versions.sh
 rmdir %{buildroot}%{uvdir}
@@ -156,6 +165,10 @@ rmdir %{buildroot}%{cmtdir}
 %dir %{scdir}
 %attr(755, root, root) %{scdir}/runBuildPrep.sh
 %attr(755, root, root) %{scdir}/runLint.sh
+%attr(755, root, root) %{scdir}/update-chart-app-version.sh
+
+%dir %{uadir}
+%attr(755, root, root) %{uadir}/update_appversion.py
 
 %dir %{uvdir}
 %attr(755, root, root) %{uvdir}/update_versions.sh
