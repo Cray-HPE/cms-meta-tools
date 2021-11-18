@@ -68,12 +68,10 @@ def parse_args():
         description="Tool to set appVersion fields in Chart.yaml and values.yaml")
     parser.add_argument("chart_dir", 
         metavar="<chart_directory>", 
-        required=True,
         type=valid_chart_dir,
         help="Directory containing Chart.yaml and values.yaml")
     parser.add_argument("app_version", 
         metavar="<app_version>", 
-        required=True,
         type=nonempty_string,
         help="Value for appVersion fields")
     parser.parse_args()
