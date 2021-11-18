@@ -157,8 +157,5 @@ PYMODDIR="${CMS_META_TOOLS_PATH}/pymods"
 # Add it to our PYTHONPATH variable
 export PYTHONPATH="${PYTHONPATH}:${PYMODDIR}"
 
-# Test to see if yaml module is available
-pyyaml_info "Checking if yaml Python module is available" 1>&2
-
 pyyaml_install_if_needed yaml PyYAML
 pyyaml_install_if_needed ruamel.yaml
