@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Copyright 2021 Hewlett Packard Enterprise Development LP
 #
@@ -22,41 +22,67 @@
 #
 # (MIT License)
 
-set -ex
+MYDIR="scripts"
+MYNAME="update-chart-app-version.sh"
 
-CHART_PATH="$1"
-APP_VERSION="$2"
+function info
+{
+    echo "$MYNAME: $*" 1>&2
+}
 
-if [ -d "${CHART_PATH}" ]; then
-    dir="${CHART_PATH}"
-    echo "image tag: ${APP_VERSION}"
-    if [ -f "$dir/Chart.yaml" ]; then
-        chart_name="${dir##*/}"
-        echo "Updating appVersion for Helm chart at $dir"
-    fi
-    if [[ -f "$dir/Chart.yaml" ]] && [[ -f "$dir/values.yaml" ]] && [[ -n "${APP_VERSION}" ]]; then
-        # update/append appVersion in values.yaml
-        if grep "^\s*global:" "$dir/values.yaml"; then
-            if grep "appVersion:" "$dir/values.yaml"; then
-                sed -e "s/^\(\sappVersion:\).*/\1 ${APP_VERSION}/" "$dir/values.yaml" > "$dir/values.yaml.tmp"
-            else
-                sed -e "s/^global\s*$/global:\n  appVersion: ${APP_VERSION}/" "$dir/values.yaml" > "$dir/values.yaml.tmp"
-            fi
-            mv "$dir/values.yaml.tmp" "$dir/values.yaml"
-        else
-            echo -e "\nglobal:\n  appVersion: ${APP_VERSION}" >> "$dir/values.yaml"
-        fi
-        cat "$dir/values.yaml"
+function err_exit
+{
+    info "ERROR: $*" 1>&2
+    exit 1
+}
 
-        # update/append appVersion in Chart.yaml
-        if grep "appVersion:" "$dir/Chart.yaml"; then
-            sed -e "s/appVersion:.*/appVersion: ${APP_VERSION}/" "$dir/Chart.yaml" > "$dir/Chart.yaml.tmp"
-            mv "$dir/Chart.yaml.tmp" "$dir/Chart.yaml"
-        else
-            echo "appVersion: ${APP_VERSION}" >> "$dir/Chart.yaml"
-        fi
-        cat "$dir/Chart.yaml"
-    else
-        echo "WARN: Unable to set global.appVersion in $dir/Chart.yaml - the resulting Chart may not reference a specific image as a result"
-    fi
+function run_cmd_verify_dir
+{
+    out=$("$@") || err_exit "Command failed: $*"
+    [ -n "$out" ] || err_exit "Command gave blank outut: $*"
+    [ -e "$out" ] || err_exit "Nonexistent path ($out) given by command: $*"
+    [ -d "$out" ] || err_exit "Non-directory path ($out) given by command: $*"
+}
+
+[ -n "${CMS_META_TOOLS_PATH}" ] && info "CMS_META_TOOLS_PATH is set to $CMS_META_TOOLS_PATH"
+
+# If CMS_META_TOOLS_PATH variable is set to a valid value, we will defer to that
+if [ -n "${CMS_META_TOOLS_PATH}" ] && [ -f "${CMS_META_TOOLS_PATH}/${MYDIR}/${MYNAME}" ]; then
+    info "Using value from CMS_META_TOOLS_PATH variable"
+    MYDIR_PATH="${CMS_META_TOOLS_PATH}/${MYDIR}"
+# In this case, let's first try realpath, since it gives us the cleanest paths
+elif realpath / >/dev/null 2>&1 ; then
+    # realpath is available, so let's use that
+    run_cmd_verify_dir dirname "$0"
+    run_cmd_verify_dir realpath "$out"
+    MYDIR_PATH="$out"
+    # Export CMS_META_TOOLS_PATH environment variable so any other scripts we call
+    # can use it, rather than repeating this stuff
+    run_cmd_verify_dir realpath "${MYDIR_PATH}/.."
+    export CMS_META_TOOLS_PATH="$out"
+    info "Exported CMS_META_TOOLS_PATH as '${CMS_META_TOOLS_PATH}'"
+# Backup plan is to use BASH_SOURCE, but note that MacOS in particular does not support this
+elif [ -n "${BASH_SOURCE[0]}" ]; then
+    run_cmd_verify_dir dirname "${BASH_SOURCE[0]}"
+    MYDIR_PATH="$out"
+    # Export CMS_META_TOOLS_PATH environment variable so any other scripts we call
+    # can use it, rather than repeating this stuff
+    export CMS_META_TOOLS_PATH="${MYDIR_PATH}/.."
+    info "Exported CMS_META_TOOLS_PATH as '${CMS_META_TOOLS_PATH}'"
+else
+    info "realpath and BASH_SOURCE both unavailable"
+    err_exit "Unable to determine path to cms-meta-tools"
 fi
+[ -f "${MYDIR_PATH}/$MYNAME" ] || err_exit "$MYNAME not found in directory ${MYDIR_PATH}"
+
+UA_PY_NAME=update_appversion.py
+UA_PY_DIR="${CMS_META_TOOLS_PATH}/update_appversion"
+UA_PY_PATH="${UA_PY_DIR}/${UA_PY_NAME}"
+[ -f "${UA_PY_PATH}" ] || err_exit "${UA_PY_NAME} not found in directory ${UA_PY_DIR}"
+
+# Test to see if ruamel.yaml module is available
+. "${CMS_META_TOOLS_PATH}/utils/pyyaml.sh"
+
+# Now call update_appversion.py located in this directory, with same arguments this script was passed
+"${UA_PY_PATH}" "$@"
+exit $?
