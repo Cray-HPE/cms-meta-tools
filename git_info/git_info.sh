@@ -67,8 +67,8 @@ function sed_diff_replace
         err_exit "sed command failed or error writing to $tmpfile"
     diff "$target" "$tmpfile" && 
         err_exit "sed command ran but no changes were made"
-    run_cmd cp "$tmpfile" "$target"
-    rm -f "$tmpfile"
+    run_cmd cp -v "$tmpfile" "$target"
+    rm -fv "$tmpfile"
     return 0
 }
 
@@ -87,19 +87,12 @@ while [ -e "$TMPFILE" ]; do
 done
 run_cmd git log -n 1 --pretty=tformat:"%H %cI %cd" --date=format:"%a %b %d %Y" > "$TMPFILE"
 read -r GIT_COMMIT_ID GIT_COMMIT_DATE GIT_COMMIT_CHANGELOG_DATE <<< $(head -1 "$TMPFILE")
-rm -f "$TMPFILE"
+rm -fv "$TMPFILE"
 echo "git branch: ${GIT_BRANCH}" > "${GITINFO_OUTFILE}" ||
     err_exit "Unable to write to ${GITINFO_OUTFILE}"
 run_cmd git log --decorate=full --source -n 1 >> "${GITINFO_OUTFILE}"
 info "Created ${GITINFO_OUTFILE}:"
 run_cmd cat "${GITINFO_OUTFILE}"
-
-CHART_ANNOTATIONS="\
-annotations:
-  git/branch: \"${GIT_BRANCH}\"
-  git/commit-date: \"${GIT_COMMIT_DATE}\"
-  git/commit-id: \"${GIT_COMMIT_ID}\"\
-"
 
 CHANGELOG=.git_info.specfile_changelog.tmp.$$.$RANDOM.$RANDOM
 while [ -e "$CHANGELOG" ]; do
@@ -148,13 +141,18 @@ while read vars; do
     fi
     if [ "$type" = chart ]; then
         # Make copy of original file, for comparison
-        run_cmd cp "$target" "$TMPFILE"
+        run_cmd cp -v "$target" "$TMPFILE"
         info "Appending git metadata to ${target}"
-        echo "${CHART_ANNOTATIONS}" >> "${target}" || 
+        if ! grep -Eq '^annotations:[[:space:]]*$' "${target}"; then
+            echo "annotations:" >> "${target}" ||
+                err_exit "Error appending to ${target}"
+        fi
+        sed -e "s,^annotations:\s*$,annotations:\n  git/branch: \"${GIT_BRANCH}\"\n  git/commit-date: \"${GIT_COMMIT_DATE}\"\n  git/commit-id: \"${GIT_COMMIT_ID}\"," "${target}" > "${target}.tmp" ||
             err_exit "Error appending to ${target}"
+        run_cmd mv "${target}.tmp" "${target}"
         diff "$target" "$TMPFILE" && 
             err_exit "Append seemed to work but $target is unchanged"
-        rm -f "$TMPFILE"
+        rm -fv "$TMPFILE"
     elif [ "$type" = dockerfile ]; then
         [ -n "$clist" ] || 
             err_exit "No container names specified for dockerfile $target"
@@ -180,9 +178,9 @@ done <<-EOF
 $(grep -E '^(chart|dockerfile|specfile):' "${GITINFO_CONFIG}")
 EOF
 
-[ -f "$TMPFILE" ] && rm -f "$TMPFILE"
-[ -f "$CHANGELOG" ] && rm -f "$CHANGELOG"
-[ -f "$DOCKERCOPY" ] && rm -f "$DOCKERCOPY"
+[ -f "$TMPFILE" ] && rm -fv "$TMPFILE"
+[ -f "$CHANGELOG" ] && rm -fv "$CHANGELOG"
+[ -f "$DOCKERCOPY" ] && rm -fv "$DOCKERCOPY"
 
 info "SUCCESS"
 exit 0
