@@ -14,8 +14,8 @@ spec:
         name: catalog-overlay
       containers:
       - name: update-catalog
-        image: "{{ .Values.catalog.image.registry }}/{{ .Values.catalog.image.repo }}/{{ .Values.catalog.image.name }}:{{ .Values.catalog.image.tag }}"
-        imagePullPolicy: IfNotPresent
+        image: "{{ .Values.catalog.image.repository }}:{{ .Values.catalog.image.tag }}"
+        imagePullPolicy: {{ .Values.catalog.image.pullPolicy }}
         volumeMounts:
         - mountPath: /results
           name: catalog-overlay
@@ -34,6 +34,22 @@ spec:
         args:
         - -c
         - "while [ ! -f ${YAML_CONTENT} ]; do sleep 2; echo 'Waiting for '${YAML_CONTENT}; done; /catalog_update.py"
+        resources:
+          limits:
+            cpu: "2"
+            memory: 256Mi
+          requests:
+            cpu: 100m
+            memory: 64Mi
+        securityContext:
+          runAsUser: 65534
+          runAsGroup: 65534
+          runAsNonRoot: true
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: false
+          capabilities:
+            drop:
+            - ALL
       - name: image-recipe-import
         volumeMounts:
         - mountPath: /results
@@ -86,8 +102,8 @@ spec:
         - name: CREATE_BOS_SESSION_TEMPLATE
           value: "{{ .Values.import_job.CREATE_BOS_SESSION_TEMPLATE }}"
 
-        image: "{{ .Values.import_image.registry }}/{{ .Values.import_image.repo }}/{{ .Values.import_image.name }}:{{ .Values.import_image.tag }}"
-        imagePullPolicy: IfNotPresent
+        image: "{{ .Values.import_image.image.repository }}:{{ .Values.import_image.image.tag }}"
+        imagePullPolicy: {{ .Values.import_image.image.pullPolicy }}
         resources:
           limits:
             cpu: "2"
@@ -95,4 +111,12 @@ spec:
           requests:
             cpu: 100m
             memory: 2Gi
-
+        securityContext:
+          runAsUser: 65534
+          runAsGroup: 65534
+          runAsNonRoot: true
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: false
+          capabilities:
+            drop:
+            - ALL
