@@ -1,29 +1,26 @@
-
 # Full image including repo, e.g. dtr.dev.cray.com/cray/import-image:1.2.3
-#                                         ^         ^         ^        ^
-#                                         |         |         |        |
-#                    ['import_image'] [registry]  [repo]    [name]   [tag]
+#                                                   ^                  ^
+#                                                   |                  |
+#                                             ['repository]          [tag]
 
 # Docker image that will be used in the `import_job` (settings below). This image
 # should use the cray-ims-load-artifacts image as its base.
 import_image:
-  registry: "dtr.dev.cray.com"
-  repo: cray
-  name: ""
-  tag: ""
+  image:
+    repository: ""
+    tag: ""
+    pullPolicy: IfNotPresent
 
 # Docker image that will update the product catalog with results of the import
 # of images and recipes. Specifies the product catalog ConfigMap as well.
 catalog:
   image:
-    registry: "dtr.dev.cray.com"
-    repo: cray
-    name: cray-product-catalog-update
-    tag: 1.2.50
+    repository: artifactory.algol60.net/csm-docker/stable/cray-product-catalog-update
+    tag: 1.3.1
+    pullPolicy: IfNotPresent
 
   config_map: cray-product-catalog
   config_map_namespace: services
-
 
 # Settings for the K8S job that uses the `import_image`
 import_job:
@@ -49,7 +46,7 @@ import_job:
   CREATE_BOS_SESSION_TEMPLATE: "False"
   BOS_URL: "http://cray-bos"
   BOS_SESSION_ENDPOINT: "v1/sessiontemplate"
-  BOS_KERNEL_PARAMETERS: |
+  BOS_KERNEL_PARAMETERS: >-
     console=ttyS0,115200 bad_page=panic crashkernel=340M hugepagelist=2m-2g intel_iommu=off intel_pstate=disable
     iommu=pt ip=dhcp numa_interleave_omit=headless numa_zonelist_order=node oops=panic pageblock_order=14
     pcie_ports=native printk.synchronous=y rd.neednet=1 rd.retry=10 rd.shell turbo_boost_limit=999

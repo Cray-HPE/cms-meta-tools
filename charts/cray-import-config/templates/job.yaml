@@ -28,8 +28,8 @@ spec:
       {{- end }}
       containers:
       - name: update-catalog
-        image: "{{ .Values.catalog.image.registry }}/{{ .Values.catalog.image.repo }}/{{ .Values.catalog.image.name }}:{{ .Values.catalog.image.tag }}"
-        imagePullPolicy: IfNotPresent
+        image: "{{ .Values.catalog.image.repository }}:{{ .Values.catalog.image.tag }}"
+        imagePullPolicy: {{ .Values.catalog.image.pullPolicy }}
         volumeMounts:
         - mountPath: /results
           name: catalog-overlay
@@ -48,6 +48,22 @@ spec:
         args:
         - -c
         - "while [ ! -f ${YAML_CONTENT} ]; do sleep 2; echo 'Waiting for '${YAML_CONTENT}; done; /catalog_update.py"
+        resources:
+          limits:
+            cpu: "2"
+            memory: 256Mi
+          requests:
+            cpu: 100m
+            memory: 64Mi
+        securityContext:
+          runAsUser: 65534
+          runAsGroup: 65534
+          runAsNonRoot: true
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: false
+          capabilities:
+            drop:
+            - ALL
       - name: content-import
         env:
         - name: CF_IMPORT_PRODUCT_NAME
@@ -78,13 +94,22 @@ spec:
             secretKeyRef:
               name: "{{ .Values.import_job.CF_IMPORT_GITEA_PASSWORD_SECRET }}"
               key: "{{ .Values.import_job.CF_IMPORT_GITEA_PASSWORD_SECRET_KEY }}"
-        image: "{{ .Values.config_image.registry }}/{{ .Values.config_image.repo }}/{{ .Values.config_image.name }}:{{ .Values.config_image.tag }}"
-        imagePullPolicy: IfNotPresent
+        image: "{{ .Values.config_image.image.repository }}:{{ .Values.config_image.image.tag }}"
+        imagePullPolicy: {{ .Values.config_image.image.pullPolicy }}
         volumeMounts:
         - mountPath: /results
           name: catalog-overlay
         - mountPath: /shared
           name: config-overlay
+        securityContext:
+          runAsUser: 65534
+          runAsGroup: 65534
+          runAsNonRoot: true
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: false
+          capabilities:
+            drop:
+            - ALL
         resources:
           limits:
             cpu: "2"
@@ -95,4 +120,3 @@ spec:
         {{- if .Values.import_job.additionalContainers }}
 {{ toYaml .Values.import_job.additionalContainers | indent 6 }}
         {{- end }}
-
