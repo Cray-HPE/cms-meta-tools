@@ -179,10 +179,16 @@ def compare_identifiers(a, b):
         return 0
 
 def remove_build(s):
+    # The build metadata string may be separated using either an underscore or a plus
     try:
         return s[:s.index('+')]
     except ValueError:
-        return s
+        # No + was found. Try _
+        try:
+            return s[:s.index('_')]
+        except ValueError:
+            # This means there was no build metadata to remove
+            return s
 
 def get_version_and_prerelease(s):
     try:
