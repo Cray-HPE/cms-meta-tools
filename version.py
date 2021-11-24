@@ -55,11 +55,13 @@ def myprint(s):
     """
     print("version.py: %s" % s, file=sys.stderr)
 
+
 def branch_name():
     """
     Obtains a copy of the name of the current branch; make it work with all DST build pipelines.
     """
-    return subprocess.check_output(['git', 'rev-parse', '--abbrev-ref', 'HEAD'], cwd=THIS_PROJECT).decode('UTF-8')
+    return subprocess.check_output(['git', 'rev-parse', '--abbrev-ref', 'HEAD'], cwd=THIS_PROJECT).decode('UTF-8').rstrip()
+
 
 class VersionStrategy():
     """
@@ -77,6 +79,12 @@ class VersionStrategy():
         A Field is simply the x, y, or z position of a given version.
         """
         self.field = field
+
+    def myprint(self, s):
+        """
+        Wrapper to global myprint function, prepending the class name
+        """
+        myprint("%s: %s" % (type(self).__name__, str(s)))
 
     @property
     def field_index(self):
@@ -122,9 +130,13 @@ class PinnedFileStrategy(VersionStrategy):
 
     def __call__(self):
         if not os.path.exists(self.pinned_path):
+            self.myprint("File '%s' does not exist" % self.pinned_path)
             return None
+        self.myprint("Reading file '%s'" % self.pinned_path)
         with open(self.pinned_path, 'r') as pinned_file:
-            return pinned_file.read().strip()
+            version = pinned_file.read().strip()
+            self.myprint("Read string '%s'" % version)
+            return version
 
 
 class GitBasedStrategy(VersionStrategy):
@@ -191,19 +203,32 @@ class DeveloperBranchOnlyDigitsStrategy(DeveloperBranchNameStrategy):
     """
     def __call__(self):
         value = super().__call__()
+        self.myprint("value = '%s'" % value)
+
+        # Remember the original value, so that we can compare it at the end, and print the
+        # revised value if applicable
+        orig_value = value
+
         value = re.sub('[^0-9]', '', value)
         if value:
             # Strip leading 0s, because they aren't allowed in SemVer 2.0
-            return re.sub("^00*", "0", value)
-        # Return 0 if all else fails
-        return "0"
+            value = re.sub("^00*", "0", value)
+        else:
+            # Return 0 if all else fails (i.e. the above modifications leave us with a blank string)
+            value = "0"
+        if value != orig_value:
+            self.myprint("After modifications, value = '%s'" % value)
+        return value
+
 
 class CommitCountStrategy(GitBasedStrategy):
     """
     Produces a version field based on the number of commits that have been made to a branch.
     """
     def __call__(self):
-        return str(len(self.commits))
+        num_commits = str(len(self.commits))
+        self.myprint("number of commits = %s" % num_commits)
+        return num_commits
 
 
 class CommitsFromParentBranch(GitBasedStrategy):
@@ -218,11 +243,16 @@ class CommitsFromParentBranch(GitBasedStrategy):
     @property
     def parent_branch(self):
         value = subprocess.check_output(['git', 'config', '--get-regex', 'branch.%s.merge' %(self.branch)], cwd=THIS_PROJECT).decode('UTF-8').strip().strip()
-        return '/'.join(value.split('/')[2:])
+        branch = '/'.join(value.split('/')[2:])
+        self.myprint("parent_branch = '%s'" % branch)
 
     @property
     def commits_from_parent(self):
-        return(subprocess.check_output(['git', 'rev-list', '--count', self.branch, '--not', 'origin/%s' %(self.parent_branch)], cwd=THIS_PROJECT).decode('UTF-8').strip())
+        num_commits = subprocess.check_output(
+            ['git', 'rev-list', '--count', self.branch, '--not', 'origin/%s' %(self.parent_branch)],
+            cwd=THIS_PROJECT).decode('UTF-8').strip()
+        self.myprint("number of local branch commits = %s" % num_commits)
+        return num_commits
 
     def __call__(self):
         try:
@@ -267,7 +297,11 @@ class CommitsSinceChangedStrategy(GitBasedStrategy):
         Introspects the git history for the commit hash for the last change to affect our parent
         pinned version.
         """
-        return subprocess.check_output(['git', 'log', '--pretty=format:%H', '-n1', self.neighbor_pinned_strategy.pinned_path], cwd=THIS_PROJECT).decode('UTF-8').strip()
+        last_commit = subprocess.check_output(
+            ['git', 'log', '--pretty=format:%H', '-n1', self.neighbor_pinned_strategy.pinned_path], 
+            cwd=THIS_PROJECT).decode('UTF-8').strip()
+        self.myprint("Last commit to affect '%s' was '%s'" % (self.neighbor_pinned_strategy.pinned_path, last_commit))
+        return last_commit
 
     @property
     def commits_since_neighbor_changed(self):
@@ -275,11 +309,14 @@ class CommitsSinceChangedStrategy(GitBasedStrategy):
         change_commit = self.neighbor_pinned_last_commit
         commit_index_matches = list(filter(lambda index: commit_list[index] == change_commit, range(len(commit_list))))
         # There _should_ be exactly one match :)
-        return commit_index_matches[0]
+        commits_since_neighbor_changed = commit_index_matches[0]
+        self.myprint("commits_since_neighbor_changed = %s" % str(commits_since_neighbor_changed))
+        return commits_since_neighbor_changed
 
     def __call__(self):
         nps = self.neighbor_pinned_strategy
         if not os.path.exists(nps.pinned_path):
+            self.myprint("File does not exist: '%s'" % (nps.pinned_path))
             return None # In short, if the more significant version is not pinned, we can't count
                         # the commits against it since its changed!
         return str(self.commits_since_neighbor_changed)
@@ -311,6 +348,12 @@ class BranchVersion(LooseVersion):
         self._y = None
         self._z = None
 
+    def myprint(self, s):
+        """
+        Wrapper to global myprint function, prepending the class name
+        """
+        myprint("%s: %s" % (type(self).__name__, str(s)))
+
     def evaluate_strategies(self, strategies):
         """
         Serially evaluates strategies in the passed list of strategies until one of them
@@ -325,21 +368,27 @@ class BranchVersion(LooseVersion):
     def x(self):
         if self._x:
             return self._x
+        self.myprint("Determing major version number")
         self._x = self.evaluate_strategies(self.x_strategies)
+        self.myprint("Major version number = %s" % self._x)
         return self._x
 
     @property
     def y(self):
         if self._y:
             return self._y
+        self.myprint("Determing minor version number")
         self._y = self.evaluate_strategies(self.y_strategies)
+        self.myprint("Minor version number = %s" % self._y)
         return self._y
 
     @property
     def z(self):
         if self._z:
             return self._z
+        self.myprint("Determing patch version number")
         self._z = self.evaluate_strategies(self.z_strategies)
+        self.myprint("Patch version number = %s" % self._z)
         return self._z
 
     @property
@@ -350,7 +399,7 @@ class BranchVersion(LooseVersion):
         return '%s.%s.%s' % self.all_fields
 
     def __call__(self):
-        myprint("Version = %r" % (self))
+        self.myprint("Version = %r" % (self))
         print('%r' %(self))
 
 
@@ -393,16 +442,22 @@ class ReleaseBranchVersion(BranchVersion):
     def z(self):
         if self._z:
             return self._z
+        self.myprint("Determing patch version number")
         self._z = self.evaluate_strategies(self.z_strategies)
-        try:
+        self.myprint("z value = '%s'" % self._z)
+        if os.path.exists(".z_offset"):
             # If there is a z_offset file we want to add it to our calculated z value
             # This is primarily useful to avoid having dynamic version numbers collide
             # with previously used static version numbers
+            self.myprint("Found .z_offset file. Reading it")
             with open(".z_offset", "rt") as z_offset_file:
-                self._z = str(int(z_offset_file.read().strip()) + int(self._z))
-        except FileNotFoundError:
+                offset = z_offset_file.read().strip()
+                self.myprint("Read string '%s'" % offset)
+            self._z = str(int(offset) + int(self._z))
+        else:
             # If there is no offset file, no problem
-            pass
+            self.myprint("No .z_offset file")
+        self.myprint("Patch version number = %s" % self._z)
         return self._z
 
     def __init__(self):
@@ -436,12 +491,14 @@ class DeveloperBranchVersion(BranchVersion):
     def y(self):
         if self._y:
             return self._y
+        self.myprint("Determing minor version number")
         yval = self.evaluate_strategies(self.y_strategies)
         if yval == '0':
             # Dev branches already have a major number of 0. We do not want them
             # to also have a minor number of 0, because we reserved 0.0.z for master
             yval='1'
         self._y = yval
+        self.myprint("Minor version number = %s" % self._y)
         return self._y
 
     def __init__(self):
