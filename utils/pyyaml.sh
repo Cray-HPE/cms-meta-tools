@@ -66,7 +66,7 @@ function pyyaml_pip3_install
 {
     # Usage: pyyaml_pip3_install <module> [<module>] ...
     # Assumes PYMODDIR has been set
-    "$PYMODDIR"/pip3 install "$@" \
+    "$PYMODDIR"/bin/pip3 install "$@" \
         --no-cache-dir \
         --trusted-host arti.dev.cray.com \
         --index-url https://arti.dev.cray.com:443/artifactory/api/pypi/pypi-remote/simple \
@@ -86,7 +86,7 @@ function pyyaml_get_pip
     # Get the latest pip, setuptools, and wheel    
     wget https://bootstrap.pypa.io/get-pip.py
     set -x
-    python3 get-pip.py -v --target "$PYMODDIR"
+    python3 get-pip.py -v -t "$PYMODDIR"
     echo $?
     ls "$PYMODDIR"
     pyyaml_pip3_install pip setuptools wheel
@@ -102,11 +102,11 @@ function pyyaml_collect_debug_info
     ls "$PYMODDIR" 1>&2
     python3 --version 1>&2
     pip3 --version 1>&2
-    "$PYMODDIR"/pip3 --version 1>&2
+    "$PYMODDIR"/bin/pip3 --version 1>&2
     uname -a 1>&2
     cat /etc/*release* 1>&2
     pip3 list 1>&2
-    "$PYMODDIR"/pip3 list 1>&2
+    "$PYMODDIR"/bin/pip3 list 1>&2
 }
 
 function pyyaml_install_if_needed
