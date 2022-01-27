@@ -24,9 +24,9 @@ function pyyaml_info
 {
     # If our parent script has $MYNAME set, include it:
     if [ -n "$MYNAME" ]; then
-        echo "$MYNAME: pyyaml.sh: $*" 1>&2
+        echo "$MYNAME: pyyaml.sh: $*"
     else
-        echo "pyyaml.sh: $*" 1>&2
+        echo "pyyaml.sh: $*"
     fi
 }
 
@@ -72,7 +72,8 @@ function pyyaml_pip3_install
         --index-url https://arti.dev.cray.com:443/artifactory/api/pypi/pypi-remote/simple \
         --ignore-installed \
         --target "$PYMODDIR" \
-        --upgrade 1>&2
+        --upgrade \
+	--verbose
 }
 
 GET_PIP_DONE=0
@@ -85,10 +86,11 @@ function pyyaml_get_pip
 
     # Get the latest pip, setuptools, and wheel    
     wget https://bootstrap.pypa.io/get-pip.py
-    set -x
-    python3 get-pip.py -v -t "$PYMODDIR"
-    echo $?
-    ls "$PYMODDIR"
+    python3 get-pip.py \
+	    --no-cache-dir \
+	    --ignore-installed \
+	    --target "$PYMODDIR" \
+	    --verbose
     pyyaml_pip3_install pip setuptools wheel
 
     # Remember that we have already done this
@@ -99,14 +101,14 @@ function pyyaml_collect_debug_info
 {
     # Collect some debug information
     # Assumes PYMODDIR has been set
-    ls "$PYMODDIR" 1>&2
-    python3 --version 1>&2
-    pip3 --version 1>&2
-    "$PYMODDIR"/bin/pip3 --version 1>&2
-    uname -a 1>&2
-    cat /etc/*release* 1>&2
-    pip3 list 1>&2
-    "$PYMODDIR"/bin/pip3 list 1>&2
+    ls "$PYMODDIR"
+    python3 --version
+    pip3 --version
+    "$PYMODDIR"/bin/pip3 --version
+    uname -a
+    cat /etc/*release*
+    pip3 list
+    "$PYMODDIR"/bin/pip3 list
 }
 
 function pyyaml_install_if_needed
@@ -123,25 +125,28 @@ function pyyaml_install_if_needed
     fi
 
     # Test to see if we can import the module
-    pyyaml_info "Checking if Python3 ${PIP_MOD} module is available" 1>&2
+    pyyaml_info "Checking if Python3 ${PIP_MOD} module is available"
 
     if ! python3 -c "import ${IMPORT_MOD}" >/dev/null 1>&2 ; then
-        pyyaml_info "Installing ${PIP_MOD} into $PYMODDIR" 1>&2
+        pyyaml_info "Installing ${PIP_MOD} into $PYMODDIR" 
 
         pyyaml_get_pip
 
         pyyaml_pip3_install "${PIP_MOD}"
 
-        if ! python3 -c "import ${IMPORT_MOD}" 1>&2 ; then
+        if ! python3 -c "import ${IMPORT_MOD}"; then
             pyyaml_collect_debug_info
         
-            pyyaml_info "ERROR: Unable to install Python3 ${PIP_MOD} module" 1>&2
+            pyyaml_info "ERROR: Unable to install Python3 ${PIP_MOD} module"
             exit 1
         fi
     fi
 
     pyyaml_info "Python3 ${PIP_MOD} module is available"
 }
+
+# We redirect stdout to stderr for everything since this script is often
+# included by other scripts who don't want this output in their stdout
 
 # This file assumes that any script sourcing it will have set the variable
 # CMS_META_TOOLS_PATH
@@ -151,7 +156,7 @@ elif ! pyyaml_validate_dir "${CMS_META_TOOLS_PATH}" ; then
     pyyaml_err_exit "CMS_META_TOOLS_PATH variable set to invalid path"
 elif ! pyyaml_validate_dir "${CMS_META_TOOLS_PATH}/utils" ; then
     pyyaml_err_exit "utils directory should be in the directory set by CMS_META_TOOLS_PATH"
-fi
+fi 1>&2
 
 # Create our local python modules directory, if needed
 PYMODDIR="${CMS_META_TOOLS_PATH}/pymods"
@@ -159,5 +164,5 @@ PYMODDIR="${CMS_META_TOOLS_PATH}/pymods"
 # Add it to our PYTHONPATH variable
 export PYTHONPATH="${PYTHONPATH}:${PYMODDIR}"
 
-pyyaml_install_if_needed yaml PyYAML
-pyyaml_install_if_needed ruamel.yaml
+pyyaml_install_if_needed yaml PyYAML 1>&2
+pyyaml_install_if_needed ruamel.yaml 1>&2
