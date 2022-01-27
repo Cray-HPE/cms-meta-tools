@@ -71,7 +71,6 @@ function pyyaml_pip3_install
         --trusted-host arti.dev.cray.com \
         --index-url https://arti.dev.cray.com:443/artifactory/api/pypi/pypi-remote/simple \
         --ignore-installed \
-        --user \
         --target="$PYMODDIR" \
         --upgrade 1>&2
 }
@@ -86,7 +85,7 @@ function pyyaml_get_pip
 
     # Get the latest pip, setuptools, and wheel    
     wget https://bootstrap.pypa.io/get-pip.py &&
-        python3 get-pip.py --no-cache-dir --user --target="$PYMODDIR" &&
+        python3 get-pip.py --no-cache-dir --target="$PYMODDIR" &&
         pyyaml_pip3_install pip setuptools wheel
 
     # Remember that we have already done this
