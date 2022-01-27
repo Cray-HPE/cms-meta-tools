@@ -84,9 +84,12 @@ function pyyaml_get_pip
     [[ $GET_PIP_DONE -eq 0 ]] || return
 
     # Get the latest pip, setuptools, and wheel    
-    wget https://bootstrap.pypa.io/get-pip.py &&
-        python3 get-pip.py --no-cache-dir --target="$PYMODDIR" &&
-        pyyaml_pip3_install pip setuptools wheel
+    wget https://bootstrap.pypa.io/get-pip.py
+    set -x
+    python3 get-pip.py -v --no-cache-dir --target="$PYMODDIR"
+    echo $?
+    ls "$PYMODDIR"
+    pyyaml_pip3_install pip setuptools wheel
 
     # Remember that we have already done this
     GET_PIP_DONE=1
