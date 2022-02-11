@@ -1,0 +1,251 @@
+#
+# MIT License
+#
+# (C) Copyright 2022 Hewlett Packard Enterprise Development LP
+#
+# Permission is hereby granted, free of charge, to any person obtaining a
+# copy of this software and associated documentation files (the "Software"),
+# to deal in the Software without restriction, including without limitation
+# the rights to use, copy, modify, merge, publish, distribute, sublicense,
+# and/or sell copies of the Software, and to permit persons to whom the
+# Software is furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included
+# in all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR
+# OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+# ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+# OTHER DEALINGS IN THE SOFTWARE.
+name: Build Artifacts
+
+# Globals
+env:
+
+  # Package/artifact names
+  CHART_NAME: cray-import-config
+
+  # Artifact repository locations
+  REGISTRY: artifactory.algol60.net
+  REGISTRY_USERNAME: github-actions-cray-hpe
+  REGISTRY_DOWNLOAD_PATH: artifactory
+  CHART_REPOSITORY: csm-helm-charts
+
+  # Testing variables
+  CHART_UNITTEST_IMAGE: quintush/helm-unittest:3.3.0-0.2.5
+
+  # Code checker variables
+  SNYK_SEVERITY_THRESHOLD: high
+
+on:
+
+  push:
+    # Do not build pushes to the main/master branch, tags build prod releases
+    # Do not build release branches from historical CSM/Shasta release branches
+    branches:
+      - feature/**
+      - hotfix/**
+      - support/**
+      - develop
+      - 'release/**'
+      - '!release/csm-**'
+      - '!release/shasta-**'
+
+  # Make this a reusable workflow for the purposes of building production
+  # releases from tags on main/master, or beta releases from release or hotfix
+  # branches.
+  workflow_call:
+    secrets:
+      SNYK_TOKEN:
+        required: true
+      ARTIFACTORY_ALGOL60_JFROG_CLI_CONFIGURATION:
+        required: true
+      ARTIFACTORY_ALGOL60_USERNAME:
+        required: true
+      ARTIFACTORY_ALGOL60_TOKEN:
+        required: true
+      COSIGN_GCP_PROJECT_ID:
+        required: true
+      COSIGN_GCP_SA_KEY:
+        required: true
+      COSIGN_KEY:
+        required: true
+    outputs:
+      run-id:
+        value: ${{ jobs.publish-deploy-script.outputs.run-id }}
+      semVer:
+        value: ${{ jobs.build-prep.outputs.semVer }}
+      chart-version:
+        value: ${{ jobs.build-prep.outputs.chart-version }}
+      is-stable:
+        value: ${{ jobs.build-prep.outputs.is-stable }}
+      build-date-time:
+        value: ${{ jobs.build-prep.outputs.build-date-time }}
+      chart:
+        value: ${{ jobs.publish-deploy-script.outputs.chart }}
+      chart_url:
+        value: ${{ jobs.publish-deploy-script.outputs.chart_url }}
+
+# Workflow Jobs
+jobs:
+
+  build-prep:
+    runs-on: self-hosted
+    outputs:
+      semVer: ${{ steps.buildprepversion.outputs.version }}
+      chart-version: ${{ steps.buildversion.outputs.chart-version }}
+      is-stable: ${{ steps.buildprepversion.outputs.is-stable }}
+      build-date-time: ${{ steps.buildprepversion.outputs.build-date-time }}
+      short-sha: ${{ steps.buildprepversion.outputs.short-sha }}
+      major: ${{ steps.buildprepversion.outputs.major }}
+      minor: ${{ steps.buildprepversion.outputs.minor }}
+      patch: ${{ steps.buildprepversion.outputs.patch }}
+      commits-since-last-version: ${{ steps.buildprepversion.outputs.commits-since-last-version }}
+      pre-release-tag: ${{ steps.buildprepversion.outputs.pre-release-tag }}
+
+    steps:
+      - name: Prep build metdata and fetch version
+        id: buildprepversion
+        uses: Cray-HPE/.github/actions/csm-run-build-prep@v2-csm-run-build-prep
+
+      - name: Set version info
+        id: buildversion
+        shell: bash
+        run: |
+          echo ::set-output name=chart-version::$(echo ${{ steps.buildprepversion.outputs.version }}+${{ steps.buildprepversion.outputs.build-date-time }}.${{ steps.buildprepversion.outputs.short-sha }})
+          echo ::set-output name=pre-release-tag::$(echo ${{ env.GITVERSION_PRERELEASETAG }})
+
+  build-publish-helm-chart:
+    runs-on: ubuntu-latest
+    needs:
+      - build-prep
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v2
+
+      - name: Set Github commit annotation
+        uses: mikefarah/yq@master
+        with:
+          cmd: yq eval --inplace '.annotations."github.com/sha" = strenv(GITHUB_SHA)' charts/${{ env.CHART_NAME }}/Chart.yaml
+
+      - name: Set Github ref annotation
+        uses: mikefarah/yq@master
+        with:
+          cmd: yq eval --inplace '.annotations."github.com/ref" = strenv(GITHUB_REF)' charts/${{ env.CHART_NAME }}/Chart.yaml
+
+      - name: Set Github commit time annotation
+        uses: mikefarah/yq@master
+        with:
+          cmd: yq eval --inplace '.annotations."github.com/timestamp" = strenv(COMMIT_TIMESTAMP)' charts/${{ env.CHART_NAME }}/Chart.yaml
+        env:
+          COMMIT_TIMESTAMP: ${{ github.event.head_commit.timestamp }}
+
+      - name: Determine Prerelease
+        uses: haya14busa/action-cond@v1
+        id: prerelease-annotation
+        with:
+          cond: ${{ needs.build-prep.outputs.is-stable }} == 'stable'
+          if_true: "false"
+          if_false: "true"
+
+      - name: Set Prerelease annotation (as a string)
+        uses: mikefarah/yq@master
+        with:
+          cmd: yq eval --inplace '.annotations."artifacthub.io/prerelease" = strenv(PRERELEASE)' charts/${{ env.CHART_NAME }}/Chart.yaml
+        env:
+          PRERELEASE: ${{ steps.prerelease-annotation.outputs.value }}
+
+      - name: Sort annotation keys
+        uses: mikefarah/yq@master
+        with:
+          cmd: yq eval --inplace 'sort_keys(.annotations)' charts/${{ env.CHART_NAME }}/Chart.yaml
+
+      - name: Lint Chart
+        run: |
+          helm lint charts/${{ env.CHART_NAME }}
+          docker run --rm -v ${PWD}/charts:/apps ${{ env.CHART_UNITTEST_IMAGE }} -3 ${{ env.CHART_NAME }}
+
+      - name: Build Helm Chart
+        run: |
+          mkdir -p charts/.packaged
+          helm dep up charts/${{ env.CHART_NAME }}
+          helm package charts/${{ env.CHART_NAME }} -d charts/.packaged --version ${{ needs.build-prep.outputs.chart-version }}
+
+      - name: Print Chart.yaml contents
+        run: |
+          tar -axf charts/.packaged/${{ env.CHART_NAME}}-${{ needs.build-prep.outputs.chart-version }}.tgz ${{ env.CHART_NAME }}/Chart.yaml -O
+
+      - name: Setup JFrog/Artifactory CLI
+        uses: jfrog/setup-jfrog-cli@v1
+        env:
+          JF_ARTIFACTORY_1: ${{ secrets.ARTIFACTORY_ALGOL60_JFROG_CLI_CONFIGURATION }}
+
+      - name: Verify connectivity to Artifactory
+        run: jfrog rt ping
+
+      - name: Publish Helm charts
+        shell: bash
+        env:
+          STABLE_PATH: ${{ needs.build-prep.outputs.is-stable }}
+          CHARTS_PATH: charts/.packaged
+          CHARTS_PATTERN: "*.tgz"
+          CHART_VERSION: ${{ needs.build-prep.outputs.chart-version }}
+        run: |
+          jfrog rt upload "charts/.packaged/${CHART_NAME}-${CHART_VERSION}.tgz" "${CHART_REPOSITORY}/${STABLE_PATH}/${CHART_NAME}/"
+
+          # Provide links for downloading
+          for packaged_chart in $(find charts/.packaged -mindepth 1 -maxdepth 1); do
+            CHART_FILE_NAME=$(basename "$packaged_chart")
+            echo "Download link: https://artifactory.algol60.net/artifactory/$TARGET_PATTERN$CHART_FILE_NAME"
+          done
+
+      - name: Upload Helm Chart as Build Artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: helm-chart
+          path: charts/.packaged/${{ env.CHART_NAME }}-${{ needs.build-prep.outputs.chart-version }}.tgz
+          retention-days: 7
+
+  publish-artifacts:
+    runs-on: ubuntu-latest
+    needs:
+      - build-prep
+      - build-publish-helm-chart
+    env:
+      STABLE: ${{ needs.build-prep.outputs.is-stable }}
+      CHART_VERSION: ${{ needs.build-prep.outputs.chart-version }}
+    outputs:
+      run-id: ${{ github.run_id }}
+      chart: ${{ steps.vars.outputs.chart }}
+      chart_version: ${{ steps.vars.outputs.chart_version }}
+      chart_url: ${{ steps.vars.outputs.chart_url }}
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v2
+
+      - name: Create additional template vars
+        id: vars
+        run: |
+          echo ::set-output name=chart::$(echo ${CHART_NAME}-${CHART_VERSION})
+          echo ::set-output name=chart_version::$(echo ${CHART_VERSION})
+          echo ::set-output name=chart_url::$(echo https://artifactory.algol60.net/ui/repos/tree/General/csm-helm-charts%2F${STABLE}%2F${CHART_NAME}%2F${CHART_NAME}-${CHART_VERSION}.tgz)
+
+      - name: Capture the artifactory locations of the build artifacts
+        uses: schdck/create-env-json@v2
+        with:
+          file-name: 'artifacts.json'
+          chart: ${{ steps.vars.outputs.chart }}
+          chart_version: ${{ steps.vars.outputs.chart_version }}
+          chart_url: ${{ steps.vars.outputs.chart_url }}
+
+      - name: Upload artifactory artifact metadata as a Build Artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: artifacts.json
+          path: artifacts.json
+          retention-days: 90
