@@ -75,7 +75,7 @@ on:
         required: true
     outputs:
       run-id:
-        value: ${{ jobs.publish-deploy-script.outputs.run-id }}
+        value: ${{ jobs.publish-artifacts.outputs.run-id }}
       semVer:
         value: ${{ jobs.build-prep.outputs.semVer }}
       chart-version:
@@ -85,9 +85,9 @@ on:
       build-date-time:
         value: ${{ jobs.build-prep.outputs.build-date-time }}
       chart:
-        value: ${{ jobs.publish-deploy-script.outputs.chart }}
+        value: ${{ jobs.publish-artifacts.outputs.chart }}
       chart_url:
-        value: ${{ jobs.publish-deploy-script.outputs.chart_url }}
+        value: ${{ jobs.publish-artifacts.outputs.chart_url }}
 
 # Workflow Jobs
 jobs:
