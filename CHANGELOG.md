@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [3.0.1] - 2022-02-11
+
 ### Added
 
 - Added dependabot for Github Actions
@@ -32,7 +34,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - See https://github.com/Cray-HPE/cray-product-install-charts for this release and prior.
 
 
-[Unreleased]: https://github.com/Cray-HPE/cray-image-config/compare/v3.0.0...HEAD
+[Unreleased]: https://github.com/Cray-HPE/cray-image-config/compare/v3.0.1...HEAD
+
+[3.0.1]: https://github.com/Cray-HPE/cray-image-config/compare/v3.0.0...v3.0.1
 
 [3.0.0]: https://github.com/Cray-HPE/cray-image-config/compare/v2.0.0...v3.0.0
 
