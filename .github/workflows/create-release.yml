@@ -1,0 +1,131 @@
+#
+# MIT License
+#
+# (C) Copyright 2022 Hewlett Packard Enterprise Development LP
+#
+# Permission is hereby granted, free of charge, to any person obtaining a
+# copy of this software and associated documentation files (the "Software"),
+# to deal in the Software without restriction, including without limitation
+# the rights to use, copy, modify, merge, publish, distribute, sublicense,
+# and/or sell copies of the Software, and to permit persons to whom the
+# Software is furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included
+# in all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR
+# OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+# ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+# OTHER DEALINGS IN THE SOFTWARE.
+name: Create Release
+
+on:
+  push:
+    tags:
+    - 'v*'
+
+jobs:
+
+  # Build and upload artifacts
+  build-artifacts:
+    uses: ./.github/workflows/build-artifacts.yml
+    secrets:
+      SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+      ARTIFACTORY_ALGOL60_JFROG_CLI_CONFIGURATION: ${{ secrets.ARTIFACTORY_ALGOL60_JFROG_CLI_CONFIGURATION }}
+      ARTIFACTORY_ALGOL60_USERNAME: ${{ secrets.ARTIFACTORY_ALGOL60_USERNAME }}
+      ARTIFACTORY_ALGOL60_TOKEN: ${{ secrets.ARTIFACTORY_ALGOL60_TOKEN }}
+      COSIGN_GCP_PROJECT_ID: ${{ secrets.COSIGN_GCP_PROJECT_ID }}
+      COSIGN_GCP_SA_KEY: ${{ secrets.COSIGN_GCP_SA_KEY }}
+      COSIGN_KEY: ${{ secrets.COSIGN_KEY }}
+
+  # Create a GH release and reference the artifacts and changes
+  create-gh-release:
+    runs-on: ubuntu-latest
+    needs:
+      - build-artifacts
+    permissions:
+      contents: write
+
+    steps:
+      - name: Build variables
+        run: |
+          echo run-id: ${{ needs.build-artifacts.outputs.run-id }}
+          echo semVer: ${{ needs.build-artifacts.outputs.semVer }}
+          echo chart-version: ${{ needs.build-artifacts.outputs.chart-version }}
+          echo is-stable: ${{ needs.build-artifacts.outputs.is-stable }}
+          echo build-date-time: ${{ needs.build-artifacts.outputs.build-date-time }}
+          echo chart: ${{ needs.build-artifacts.outputs.chart }}
+          echo chart_url: ${{ needs.build-artifacts.outputs.chart_url }}
+
+      - uses: actions/checkout@v2
+
+      # This action assumes that the release notes are the second header in the
+      # Keep a Changelog format, which skips the "Unreleased" section. Therefore,
+      # it will not work for prereleases where a new section has not been created
+      # like alpha releases on the develop branch, or one-off releases from
+      # feature branches
+      - name: Extract release notes
+        if: needs.build-artifacts.outputs.is-stable == 'stable'
+        id: extract-release-notes
+        uses: ffurrer2/extract-release-notes@v1.11.0
+        with:
+          changelog_file: CHANGELOG.md
+
+      - name: Render release template
+        uses: chuhlomin/render-template@v1.4
+        id: template
+        with:
+          template: .github/templates/release.md.tmpl
+          vars: |
+            releaseNotes: "${{ steps.extract-release-notes.outputs.release_notes }}"
+            isStable: "${{ needs.build-artifacts.outputs.is-stable }}"
+            chart: "${{ needs.build-artifacts.outputs.chart }}"
+            chartUrl: "${{ needs.build-artifacts.outputs.chart_url }}"
+            runUrl: "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+            runID: ${{ github.run_id }}
+
+      - name: Download artifacts.json
+        uses: actions/download-artifact@v2
+        with:
+          name: artifacts.json
+
+      - name: Create Stable Release
+        uses: ncipollo/release-action@v1
+        id: stable-release
+        if: needs.build-artifacts.outputs.is-stable == 'stable'
+        with:
+          generateReleaseNotes: true
+          prerelease: false
+          body: ${{ steps.template.outputs.result }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          artifacts: artifacts.json
+          artifactContentType: application/json
+          allowUpdates: true  # for rebuilds to remove CVEs, etc
+
+      - name: Output Release information
+        if: needs.build-artifacts.outputs.is-stable == 'stable'
+        run: |
+          echo Created release id: ${{ steps.stable-release.outputs.id}}
+          echo Created release: ${{ steps.stable-release.outputs.html_url}}
+
+      - name: Create Prerelease
+        id: prerelease-release
+        uses: ncipollo/release-action@v1
+        if: needs.build-artifacts.outputs.is-stable == 'unstable'
+        with:
+          generateReleaseNotes: true
+          prerelease: true
+          body: ${{ steps.template.outputs.result }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          artifacts: artifacts.json
+          artifactContentType: application/json
+          allowUpdates: true  # for rebuilds to remove CVEs, etc
+
+      - name: Output Release information
+        if: needs.build-artifacts.outputs.is-stable == 'unstable'
+        run: |
+          echo Created release id: ${{ steps.prerelease-release.outputs.id}}
+          echo Created release: ${{ steps.prerelease-release.outputs.html_url}}

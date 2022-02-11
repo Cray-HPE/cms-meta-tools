@@ -1,18 +1,18 @@
 apiVersion: v2
 name: cray-import-config
-version: 2.0.0
+version: 0.0.0-DEV  # Replaced during build
 description: Base chart for importing configuration content into Gitea on Shasta systems.
 keywords:
   - gitea
-  - cfs
-home: https://github.com/Cray-HPE/cray-product-install-charts
+  - csm
+home: https://github.com/Cray-HPE/cray-import-config
 sources:
-  - https://github.com/Cray-HPE/cray-product-install-charts
+  - https://github.com/Cray-HPE/cray-import-config
 maintainers:
 - email: randy.kleinman@hpe.com
   name: rkleinman
 annotations:
   artifacthub.io/images: |
     - name: cray-product-catalog-update
-      image: artifactory.algol60.net/csm-docker/stable/cray-product-catalog-update:1.3.1
+      image: artifactory.algol60.net/csm-docker/stable/cray-product-catalog-update:1.5.2
   artifacthub.io/license: MIT
