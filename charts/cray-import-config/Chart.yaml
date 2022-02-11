@@ -33,7 +33,7 @@ sources:
   - https://github.com/Cray-HPE/cray-import-config
 maintainers:
 - email: randy.kleinman@hpe.com
-  name: rkleinman
+  name: rkleinman-hpe
 annotations:
   artifacthub.io/images: |
     - name: cray-product-catalog-update
