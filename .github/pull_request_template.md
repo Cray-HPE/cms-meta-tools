@@ -41,11 +41,7 @@ _Are there known issues with these changes? Any other special considerations?_
 
 ## Pull Request Checklist
 
-- [ ] Version number(s) incremented, if applicable
-- [ ] Copyrights updated
-- [ ] License file intact
 - [ ] Target branch correct
-- [ ] CHANGELOG.md updated
 - [ ] Testing is appropriate and complete, if applicable
 - [ ] [HPC Product Announcement](https://cray.slack.com/archives/C026TVCSXLH) prepared, if applicable
 

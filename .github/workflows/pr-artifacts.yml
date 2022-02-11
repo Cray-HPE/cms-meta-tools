@@ -1,0 +1,129 @@
+#
+# MIT License
+#
+# (C) Copyright 2022 Hewlett Packard Enterprise Development LP
+#
+# Permission is hereby granted, free of charge, to any person obtaining a
+# copy of this software and associated documentation files (the "Software"),
+# to deal in the Software without restriction, including without limitation
+# the rights to use, copy, modify, merge, publish, distribute, sublicense,
+# and/or sell copies of the Software, and to permit persons to whom the
+# Software is furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included
+# in all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR
+# OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+# ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+# OTHER DEALINGS IN THE SOFTWARE.
+name: Add artifact information to PR
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, labeled, unlabeled]
+
+# Globals
+env:
+  CHART_NAME: cray-import-config
+
+# Workflow Jobs
+jobs:
+  wait-for-artifacts:
+    if: "!(
+      contains(github.event.pull_request.labels.*.name, 'gitflow-maintenance') || 
+      contains(github.event.pull_request.labels.*.name, 'dependabot')
+      )"
+    runs-on: ubuntu-latest
+    outputs:
+      conclusion: ${{ steps.wait-for-build.outputs.conclusion }}
+
+    steps:
+
+      - name: Wait for push build to succeed and upload deploy script
+        uses: fountainhead/action-wait-for-check@v1.0.0
+        id: wait-for-build
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          checkName: publish-artifacts
+          ref: ${{ github.event.pull_request.head.sha }}
+          timeoutSeconds: 300
+          intervalSeconds: 30
+
+      # Some PRs don't have push branch builds (master, for example). Don't
+      # attempt to update the PR with artifact locations in a comment, just
+      # exit cleanly.
+      - name: Check timed out
+        if: steps.wait-for-build.outputs.conclusion == 'timed_out'
+        run: |
+          echo "The check has timed out; exiting cleanly."
+
+  update-pr-with-artifacts:
+    runs-on: ubuntu-latest
+    if: "needs.wait-for-artifacts.outputs.conclusion != 'timed_out' && 
+        !(
+          contains(github.event.pull_request.labels.*.name, 'gitflow-maintenance') || 
+          contains(github.event.pull_request.labels.*.name, 'dependabot')
+        )"
+    needs:
+      - wait-for-artifacts
+
+    steps:
+
+      - name: Checkout repo
+        uses: actions/checkout@v2
+
+      - name: Download artifacts.json
+        id: first-download-attempt
+        if: needs.wait-for-artifacts.outputs.conclusion == 'success'
+        continue-on-error: true
+        uses: dawidd6/action-download-artifact@v2
+        with:
+          workflow: build-artifacts.yml
+          workflow_conclusion: success
+          pr: ${{ github.event.pull_request.number }}
+          name: artifacts.json
+
+      - name: Wait a while for the github api to report the workflow/artifact
+        if: steps.first-download-attempt.outcome != 'success'
+        run: |
+          # Kinda expected the previous action to do this, but it doesn't always
+          # end up that way.
+          echo conclusion: ${{ needs.wait-for-artifacts.outputs.conclusion }}
+          sleep 60;
+
+      - name: Download artifacts.json
+        if: needs.wait-for-artifacts.outputs.conclusion == 'success' && steps.first-download-attempt.outcome != 'success'
+        uses: dawidd6/action-download-artifact@v2
+        with:
+          workflow: build-artifacts.yml
+          workflow_conclusion: success
+          pr: ${{ github.event.pull_request.number }}
+          name: artifacts.json
+
+      - name: Read artifacts JSON in
+        id: set-json-vars
+        run: |
+          JSON=$(cat ./artifacts.json)
+          echo "::set-output name=artifacts::${JSON//'%'/'%25'}"
+
+      - name: Render artifacts comment template
+        if: needs.wait-for-artifacts.outputs.conclusion == 'success'
+        uses: chuhlomin/render-template@v1.4
+        id: template
+        with:
+          template: .github/templates/pr-artifacts.md.tmpl
+          vars: |
+            srcBranch: ${{ github.event.pull_request.head.ref }}
+            commit: ${{ github.event.pull_request.head.sha}}
+            chart: "${{fromJson(steps.set-json-vars.outputs.artifacts).chart}}"
+            chartUrl: "${{fromJson(steps.set-json-vars.outputs.artifacts).chart_url}}"
+
+      - name: Create commit comment
+        if: needs.wait-for-artifacts.outputs.conclusion == 'success'
+        uses: peter-evans/commit-comment@v1
+        with:
+          sha: ${{ github.event.pull_request.head.sha }}
+          body: ${{ steps.template.outputs.result }}
