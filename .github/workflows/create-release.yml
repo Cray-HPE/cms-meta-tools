@@ -60,7 +60,7 @@ jobs:
           echo chart: ${{ needs.build-artifacts.outputs.chart }}
           echo chart_url: ${{ needs.build-artifacts.outputs.chart_url }}
 
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       # This action assumes that the release notes are the second header in the
       # Keep a Changelog format, which skips the "Unreleased" section. Therefore,
