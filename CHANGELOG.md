@@ -5,6 +5,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [3.0.2] - 2022-03-04
+
+### Changed
+
+- Switch build prep workflow to use GH ubuntu runner instead of self-hosted for security reasons
+
 ## [3.0.1] - 2022-02-11
 
 ### Added
