@@ -125,7 +125,7 @@ jobs:
 
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Set Github commit annotation
         uses: mikefarah/yq@master
@@ -180,7 +180,7 @@ jobs:
           tar -axf charts/.packaged/${{ env.CHART_NAME}}-${{ needs.build-prep.outputs.chart-version }}.tgz ${{ env.CHART_NAME }}/Chart.yaml -O
 
       - name: Setup JFrog/Artifactory CLI
-        uses: jfrog/setup-jfrog-cli@v1
+        uses: jfrog/setup-jfrog-cli@v2.1.0
         env:
           JF_ARTIFACTORY_1: ${{ secrets.ARTIFACTORY_ALGOL60_JFROG_CLI_CONFIGURATION }}
 
@@ -226,7 +226,7 @@ jobs:
 
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Create additional template vars
         id: vars

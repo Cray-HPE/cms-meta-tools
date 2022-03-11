@@ -84,6 +84,8 @@ spec:
           value: "{{ .Values.import_job.CF_IMPORT_PROTECT_BRANCH }}"
         - name: CF_IMPORT_PRIVATE_REPO
           value: "{{ .Values.import_job.CF_IMPORT_PRIVATE_REPO }}"
+        - name: CF_IMPORT_FORCE_EXISTING_BRANCH
+          value: "{{ .Values.import_job.CF_IMPORT_FORCE_EXISTING_BRANCH }}"
         - name: CF_IMPORT_GITEA_USER
           valueFrom:
             secretKeyRef:

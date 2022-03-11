@@ -21,10 +21,7 @@
 # ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 # OTHER DEALINGS IN THE SOFTWARE.
 
-# Full image including repo, e.g. dtr.dev.cray.com/cray/config-image:1.2.3
-#                                                   ^                 ^
-#                                                   |                 |
-#                                             ['repository]         [tag]
+# The image that contains the config content (based on cf-gitea-import)
 config_image:
   image:
     repository: ""
@@ -55,6 +52,7 @@ import_job:
   CF_IMPORT_CONTENT: "/content"
   CF_IMPORT_PROTECT_BRANCH: "true"
   CF_IMPORT_PRIVATE_REPO: "true"
+  CF_IMPORT_FORCE_EXISTING_BRANCH: "false"
 
   # Specify the user/password of the gitea user from a k8s secret
   CF_IMPORT_GITEA_USER_SECRET: "vcs-user-credentials"

@@ -11,7 +11,7 @@ repository. History has been preserved from version 2.0.0 and prior in this repo
 
 ## Contributing
 
-[Code owners](https://github.com/Cray-HPE/cf-gitea-import/blob/master/.github/CODEOWNERS):
+[Code owners](https://github.com/Cray-HPE/cray-import-config/blob/develop/.github/CODEOWNERS):
 make a branch. Others, make a fork.
 
 This repository follows the [CSM Gitflow Development Process](https://github.com/Cray-HPE/community/wiki/Gitflow-Development-Process).
