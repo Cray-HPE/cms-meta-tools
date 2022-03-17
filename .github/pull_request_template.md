@@ -43,5 +43,6 @@ _Are there known issues with these changes? Any other special considerations?_
 
 - [ ] Target branch correct
 - [ ] Testing is appropriate and complete, if applicable
+- [ ] Is a new version being released? Update https://github.com/Cray-HPE/cray-import-config/wiki/CSM-Compatibility-Matrix
 - [ ] [HPC Product Announcement](https://cray.slack.com/archives/C026TVCSXLH) prepared, if applicable
 
