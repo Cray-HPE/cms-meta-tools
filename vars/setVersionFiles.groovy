@@ -40,6 +40,14 @@ def call() {
         echo "Reading base version from .version"
         ver = readFile('.version').trim()
         echo "Base version is ${ver}"    
+    } else
+    if (fileExists('GitVersion.yml') {
+        // Using gitversion versioning
+        echo "GitVersion.yml file exists -- using gitversion versioning"
+        echo "Reading base version from gitversion"
+        ver = sh(returnStdout: true, script: "gitversion /output json /showvariable SemVer").trim()
+        echo "Writing base version to .version"
+        writeFile(file: ".version", text: ver)
     } else {
         // Using dynamic versioning
         echo "No .version file exists -- using dynamic versioning"
