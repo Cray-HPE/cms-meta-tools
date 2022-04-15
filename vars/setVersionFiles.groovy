@@ -41,7 +41,7 @@ def call() {
         ver = readFile('.version').trim()
         echo "Base version is ${ver}"    
     } else
-    if (fileExists('GitVersion.yml') {
+    if (fileExists('GitVersion.yml')) {
         // Using gitversion versioning
         echo "GitVersion.yml file exists -- using gitversion versioning"
         echo "Reading base version from gitversion"
