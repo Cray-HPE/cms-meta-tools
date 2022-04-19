@@ -45,6 +45,8 @@ def call() {
         // Using gitversion versioning
         echo "GitVersion.yml file exists -- using gitversion versioning"
         echo "Reading base version from gitversion"
+        sh(returnStdout: false, script: "git remote set-branches --add origin develop")
+        sh(returnStdout: false, script: "git fetch origin develop:develop")
         ver = sh(returnStdout: true, script: "gitversion /output json /showvariable SemVer").trim()
         echo "Writing base version to .version"
         writeFile(file: ".version", text: ver)
