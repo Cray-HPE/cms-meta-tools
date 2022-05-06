@@ -22,7 +22,7 @@ Verifies that Go files in a repo pass a linting with `gofmt`
 
 ### [latest_version](latest_version)
 
-Finds the latest version of a docker or helm image on arti.dev.cray.com
+Finds the latest version of a docker or helm image on arti.hpc.amslabs.hpecorp.net
 
 ### [update_versions](update_versions)
 

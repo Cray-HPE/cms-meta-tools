@@ -69,8 +69,6 @@ function pyyaml_pip3_install
     # Assumes PYMODDIR has been set
     pip3 install "$@" \
         --no-cache-dir \
-        --trusted-host arti.dev.cray.com \
-        --index-url https://arti.dev.cray.com:443/artifactory/api/pypi/pypi-remote/simple \
         --ignore-installed \
         --target="$PYMODDIR" \
         --upgrade 1>&2
