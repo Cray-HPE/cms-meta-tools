@@ -45,20 +45,21 @@ def call() {
         // Using gitversion versioning
         echo "GitVersion.yml file exists -- using gitversion versioning"
         echo "Ensuring local develop and master branches"
+        echo "Current branch is ${env.GIT_BRANCH}"
         branches = sh(returnStdout: true, script: "git branch -r --color=never").split("\n").collect{it.strip()}
         if ( branches.find{it=="origin/main"} ) {
-            if ( env.GIT_BRANCH != "origin/main" ) {
+            if ( env.GIT_BRANCH != "main" ) {
                 sh "git branch main --track origin/main"
             }
         } else if ( branches.find{it=="origin/master"} ) {
-            if ( env.GIT_BRANCH != "origin/master" ) {
+            if ( env.GIT_BRANCH != "master" ) {
                 sh "git branch master --track origin/master"
             }
         } else {
             error "Cloned repository is missing master or main branch, required for gitversion functionality"
         }
         if ( branches.find{it=="origin/develop"} ) {
-            if ( env.GIT_BRANCH != "origin/develop" ) {
+            if ( env.GIT_BRANCH != "develop" ) {
                 sh "git branch develop --track origin/develop"
             }
         } else {
