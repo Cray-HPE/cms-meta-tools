@@ -67,7 +67,7 @@ def call() {
         }
         echo "Reading base version from gitversion"
         ver = sh(returnStdout: true, script: "gitversion /output json /showvariable SemVer /nonormalize").trim()
-        echo "Writing base version to .version"
+        echo "Writing version '${ver}' to .version"
         writeFile(file: ".version", text: ver)
     } else {
         // Using dynamic versioning
