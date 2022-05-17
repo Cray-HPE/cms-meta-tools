@@ -47,14 +47,20 @@ def call() {
         echo "Ensuring local develop and master branches"
         branches = sh(returnStdout: true, script: "git branch -r --color=never").split("\n").collect{it.strip()}
         if ( branches.find{it=="origin/main"} ) {
-            sh "git branch main --track origin/main"
+            if ( env.GIT_BRANCH != "origin/main" ) {
+                sh "git branch main --track origin/main"
+            }
         } else if ( branches.find{it=="origin/master"} ) {
-            sh "git branch master --track origin/master"
+            if ( env.GIT_BRANCH != "origin/master" ) {
+                sh "git branch master --track origin/master"
+            }
         } else {
             error "Cloned repository is missing master or main branch, required for gitversion functionality"
         }
         if ( branches.find{it=="origin/develop"} ) {
-            sh "git branch develop --track origin/develop"
+            if ( env.GIT_BRANCH != "origin/develop" ) {
+                sh "git branch develop --track origin/develop"
+            }
         } else {
             error "Cloned repository is missing develop or main branch, required for gitversion functionality"
         }
