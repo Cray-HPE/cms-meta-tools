@@ -26,6 +26,10 @@
 
 def call() {
     def ver
+    def chartver
+    def dockerver
+    def rpmver
+    def rpmrel
 
     /// Need the CSM shared library for the getDockerBuildVersion function
     echo "Loading csm-shared-library, if it is not already loaded (an error message about this can be ignored)"
@@ -79,12 +83,12 @@ def call() {
         echo "Writing base version to .version"
         writeFile(file: ".version", text: ver)
     }
-    
+
     ///////////////////
     // Docker version
     ///////////////////
     echo "Calling getDockerBuildVersion to get docker version"
-    def dockerver = getDockerBuildVersion(isStable: env.IS_STABLE)
+    dockerver = getDockerBuildVersion(isStable: env.IS_STABLE)
     echo "Docker version is ${dockerver}"
 
     echo "Writing docker version to .docker_version"
@@ -94,15 +98,47 @@ def call() {
     // Chart version
     ///////////////////
     echo "Converting docker version string to chart version string"
-    def chartver = dockerver.replaceAll("_", "+")
+    chartver = dockerver.replaceAll("_", "+")
     echo "Chart version is ${chartver}"
 
     echo "Writing chart version to .chart_version"
     writeFile(file: ".chart_version", text: chartver)
 
     ///////////////////
+    // RPM version and release
+    ///////////////////
+    // RPM versions cannot contain the - character. If our version string contains a -, then we split the string.
+    // The first part becomes the RPM version, the second part becomes the RPM release. The RPM release is also
+    // not permitted to contain a - character, but a valid SemVer 2.0 version can at most contain one -, so this should
+    // not be an issue.
+    // If the version does not contain a -, then the entire version will be used for the RPM version, and the RPM release
+    // will use the default value of 1.
+    rpmrel = "1"
+    if (ver.contains("-")) {
+        echo "Version contains a dash. Splitting to create RPM version and release"
+        ver_fields = ver.split("-")
+        // Make sure there was just a single - character
+        if (ver_fields.size() != 2) {
+            error "Version contains unexpected number of dashes (should be exactly 0 or 1): ${ver}"
+        }
+        rpmver = ver_fields[0]
+        rpmrel = ver_fields[1]
+    } else {
+        echo "Version does not contain a dash. Using default of 1 for RPM release"
+        rpmver = ver
+    }
+
+    echo "RPM version is ${rpmver}"
+    echo "Writing RPM version to .rpm_version"
+    writeFile(file: ".rpm_version", text: rpmver)
+
+    echo "RPM release is ${rpmrel}"
+    echo "Writing RPM release to .rpm_release"
+    writeFile(file: ".rpm_release", text: rpmrel)
+
+    ///////////////////
     // Versions for other artifact types
     ///////////////////
-    // The base version string is also what is used for RPMs and Python modules, which is
+    // The base version string is also what is used for Python modules, which is
     // why there are no .xxxx_version files generated for those
 }
