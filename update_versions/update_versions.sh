@@ -103,7 +103,7 @@ function process_file
     grep -q "$VTAG" "$F" ||
         err_exit "Version tag ($VTAG) not found in file $F"
     AFTER="${F}.after"
-    run_cmd sed "s/${VTAG}/${VSTRING}/g" "$F" > "$AFTER" ||
+    run_cmd sed "s#${VTAG}#${VSTRING}#g" "$F" > "$AFTER" ||
         err_exit "Error writing to $AFTER"
     info "# diff \"$AFTER\" \"$F\""
     diff "$AFTER" "$F"
@@ -124,12 +124,19 @@ function update_tags
     # Set defaults
     tag="$DEFAULT_VERSION_TAG"
     sourcefile="$DEFAULT_VERSION_SOURCEFILE"
+    validate=Y
     versionstring=""
     while read vars; do
         if [[ "$vars" =~ ^tag: ]]; then
             tag=$(echo $vars | sed -e 's/^tag:[[:space:]]*//' -e 's/[[:space:]]*$//')
         elif [[ "$vars" =~ ^sourcefile ]]; then
-            sourcefile=$(echo $vars | sed -e 's/^sourcefile:[[:space:]]*//' -e 's/[[:space:]]*$//')
+            if [[ "$vars" =~ ^sourcefile-novalidate ]]; then
+                sourcefile=$(echo $vars | sed -e 's/^sourcefile-novalidate:[[:space:]]*//' -e 's/[[:space:]]*$//')
+                validate=N
+            else
+                sourcefile=$(echo $vars | sed -e 's/^sourcefile:[[:space:]]*//' -e 's/[[:space:]]*$//')
+                validate=Y
+            fi
             [ -e "$sourcefile" ] ||
                 err_exit "sourcefile ($sourcefile) specified in $CONFIGFILE does not exist"
             # Whenever we see a new sourcefile variable we need to invalidate our previous version string
@@ -155,9 +162,18 @@ function update_tags
                 # Strip off any leading or trailing whitespace
                 versionstring=$(echo "$versionstring" | sed -e 's/^[[:space:]]*//g' -e 's/[[:space:]]*$//g')
                 info "Version string from $sourcefile is \"$versionstring\""
-                # Verify that it is a valid version string
-                if ! echo "$versionstring" | grep -Eq "$VPATTERN" ; then
-                    err_exit "Version string does not match expected format"
+                if [[ $validate == N ]]; then
+                    # Validate that string is not blank and has no illegal characters
+                    if [[ -z $versionstring ]]; then
+                        err_exit "Version string may not be blank"
+                    elif echo "$versionstring" | grep -Eq '["\#]' ; then
+                        err_exit "Version string contains invalid character"
+                    fi
+                else
+                    # Verify that it is a valid version string
+                    if ! echo "$versionstring" | grep -Eq "$VPATTERN" ; then
+                        err_exit "Version string does not match expected format"
+                    fi
                 fi
             fi
             process_file "$targetfile" "$tag" "$versionstring"
@@ -166,7 +182,7 @@ function update_tags
             err_exit "PROGRAMMING LOGIC ERROR: Unexpected value of vars = $vars"
         fi
     done <<-EOF
-    $(grep -E '^(tag|sourcefile|targetfile):' $CONFIGFILE)
+    $(grep -E '^(tag|sourcefile|sourcefile-novalidate|targetfile):' $CONFIGFILE)
 EOF
     return 0
 }
