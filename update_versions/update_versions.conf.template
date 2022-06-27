@@ -2,14 +2,15 @@
 #
 #sourcefile: File to obtain the actual version from (optional -- if unspecified, .version is assumed)
 #            If this file is executable, it will be executed and the output will be used as the version string.
-#            Otherwise it will be read and its contents will be used as the version string.
-#			 The contents are validated by the update_version.sh string to verify that they match the
-#			 expected version formatting (essentially semver, with a minor exception -- see the script header
-#			 for details).
+#            Otherwise it will be read and its contents will be used as the version string, with any leading and
+#            trailing whitespace stripped. The version string is validated by the update_version.sh string to
+#            verify that they match the expected version formatting (essentially semver, with a minor exception
+#            -- see the script header for details).
 #sourcefile-novalidate: This is identical to the previous tag, except that the only validation that is
 #            done is to verify that the version string is not blank and does not contain strings which will
-#			 disrupt the sed command used for the version tag replacement. Essentially, it cannot contain
-#            double quotes, forward slashes, or hash symbols.
+#            disrupt the sed command used for the version tag replacement. Essentially, it cannot contain
+#            double quotes, forward slashes, or hash symbols. The file does still have leading and trailing
+#            whitespace stripped, however.
 #targetfile: file in which to have version tags replaced. When this line is reached, the replacement
 #            action is performed on this file.
 #
