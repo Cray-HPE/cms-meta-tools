@@ -101,16 +101,19 @@ def call() {
     if (gitversion) {
         dockerver = basever
         chartver = basever
-        // Using gitversion. In this case, we construct our version string using the information we got from gitversion.
-        if (prereleasetag != "") {
-            echo "Appending prereleasetag to Docker and Chart versions"
-            dockerver = dockerver + "-" + prereleasetag
-            chartver = chartver + "-" + prereleasetag
-        }
-        if (sha != "") {
-            echo "Appending Sha to Docker and Chart versions"
-            dockerver = dockerver + "_" + sha
-            chartver = chartver + "+" + sha
+        if (!env.IS_STABLE) {
+            // Using gitversion, unstable artifact.
+            // In this case, we construct our version string using the information we got from gitversion.
+            if (prereleasetag != "") {
+                echo "Appending prereleasetag to Docker and Chart versions"
+                dockerver = dockerver + "-" + prereleasetag
+                chartver = chartver + "-" + prereleasetag
+            }
+            if (sha != "") {
+                echo "Appending Sha to Docker and Chart versions"
+                dockerver = dockerver + "_" + sha
+                chartver = chartver + "+" + sha
+            }
         }
         echo "Chart version is ${chartver}"
         echo "Docker version is '${dockerver}'"
@@ -138,8 +141,9 @@ def call() {
     // The RPM release will be the metadata+sha, except with dahses replaced by ~.
     // If no prerelease tag exists, it will default to 1 for the purposes of the RPM release field.
     rpmrel = "1"
-    if (gitversion) {
-        // Using gitversion. In this case, we construct our version string using the information we got from gitversion.
+    if ((gitversion) && (!env.IS_STABLE)) {
+        // Using gitversion, unstable artifact.
+        // In this case, we construct our version string using the information we got from gitversion.
         if (prereleasetag != "") {
             echo "Basing RPM release on prereleasetag"
             rpmrel = prereleasetag.replaceAll("-", "~")
