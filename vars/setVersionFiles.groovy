@@ -26,7 +26,7 @@
 
 def call() {
     def basever
-    def gitversion
+    def gitversion = false
     def prereleasetag
     def sha
     def chartver
@@ -36,8 +36,6 @@ def call() {
     /// Need the CSM shared library for the getDockerBuildVersion function
     echo "Loading csm-shared-library, if it is not already loaded (an error message about this can be ignored)"
     library 'csm-shared-library'
-
-    gitversion = False
 
     ///////////////////
     // Base version
@@ -51,7 +49,7 @@ def call() {
     } else
     if (fileExists('GitVersion.yml')) {
         // Using gitversion versioning
-        gitversion = True
+        gitversion = true
         echo "GitVersion.yml file exists -- using gitversion versioning"
         echo "Ensuring local develop and master branches"
         echo "Current branch is ${env.GIT_BRANCH}"
