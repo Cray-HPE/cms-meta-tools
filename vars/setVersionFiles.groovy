@@ -25,15 +25,19 @@
  */
 
 def call() {
-    def ver
+    def basever
+    def gitversion
+    def prereleasetag
+    def sha
     def chartver
     def dockerver
-    def rpmver
     def rpmrel
 
     /// Need the CSM shared library for the getDockerBuildVersion function
     echo "Loading csm-shared-library, if it is not already loaded (an error message about this can be ignored)"
     library 'csm-shared-library'
+
+    gitversion = False
 
     ///////////////////
     // Base version
@@ -42,11 +46,12 @@ def call() {
         // Using static versioning
         echo ".version file exists -- using static versioning"
         echo "Reading base version from .version"
-        ver = readFile('.version').trim()
-        echo "Base version is ${ver}"    
+        basever = readFile('.version').trim()
+        echo "Base version is ${basever}"    
     } else
     if (fileExists('GitVersion.yml')) {
         // Using gitversion versioning
+        gitversion = True
         echo "GitVersion.yml file exists -- using gitversion versioning"
         echo "Ensuring local develop and master branches"
         echo "Current branch is ${env.GIT_BRANCH}"
@@ -70,36 +75,59 @@ def call() {
             error "Cloned repository is missing develop or main branch, required for gitversion functionality"
         }
         echo "Reading base version from gitversion"
-        ver = sh(returnStdout: true, script: "gitversion /output json /showvariable SemVer /nonormalize").trim()
-        echo "Writing version '${ver}' to .version"
-        writeFile(file: ".version", text: ver)
+        basever = sh(returnStdout: true, script: "gitversion /output json /showvariable MajorMinorPatch /nonormalize").trim()
+        echo "Writing version '${basever}' to .version"
+        writeFile(file: ".version", text: basever)
+
+        echo "Reading PreReleaseTag from gitversion"
+        prereleasetag = sh(returnStdout: true, script: "gitversion /output json /showvariable PreReleaseTag /nonormalize").trim()
+        echo "PreReleaseTag is '${PreReleaseTag}'"
+
+        echo "Reading Sha from gitversion"
+        prereleasetag = sh(returnStdout: true, script: "gitversion /output json /showvariable Sha /nonormalize").trim()
+        echo "Sha is '${Sha}'"
     } else {
         // Using dynamic versioning
         echo "No .version file exists -- using dynamic versioning"
         echo "Generating base version dynamically"
-        ver = sh(returnStdout: true, script: "./cms_meta_tools/version.py").trim()
-        echo "Base version is ${ver}"
+        basever = sh(returnStdout: true, script: "./cms_meta_tools/version.py").trim()
+        echo "Base version is ${basever}"
 
         echo "Writing base version to .version"
-        writeFile(file: ".version", text: ver)
+        writeFile(file: ".version", text: basever)
     }
 
     ///////////////////
-    // Docker version
+    // Docker version and Chart version
     ///////////////////
-    echo "Calling getDockerBuildVersion to get docker version"
-    dockerver = getDockerBuildVersion(isStable: env.IS_STABLE)
-    echo "Docker version is ${dockerver}"
+    if (gitversion) {
+        dockerver = basever
+        chartver = basever
+        // Using gitversion. In this case, we construct our version string using the information we got from gitversion.
+        if (PreReleaseTag != "") {
+            echo "Appending PreReleaseTag to Docker and Chart versions"
+            dockerver = dockerver + "-" + PreReleaseTag
+            chartver = chartver + "-" + PreReleaseTag
+        }
+        if (Sha != "") {
+            echo "Appending Sha to Docker and Chart versions"
+            dockerver = dockerver + "_" + Sha
+            chartver = chartver + "+" + Sha
+        }
+        echo "Chart version is ${chartver}"
+        echo "Docker version is '${dockerver}'"
+    } else {
+        echo "Calling getDockerBuildVersion to get docker version"
+        dockerver = getDockerBuildVersion(isStable: env.IS_STABLE)
+        echo "Docker version is ${dockerver}"
+
+        echo "Converting docker version string to chart version string"
+        chartver = dockerver.replaceAll("_", "+")
+        echo "Chart version is ${chartver}"
+    }
 
     echo "Writing docker version to .docker_version"
     writeFile(file: ".docker_version", text: dockerver)
-
-    ///////////////////
-    // Chart version
-    ///////////////////
-    echo "Converting docker version string to chart version string"
-    chartver = dockerver.replaceAll("_", "+")
-    echo "Chart version is ${chartver}"
 
     echo "Writing chart version to .chart_version"
     writeFile(file: ".chart_version", text: chartver)
@@ -107,30 +135,22 @@ def call() {
     ///////////////////
     // RPM version and release
     ///////////////////
-    // RPM versions cannot contain the - character. If our version string contains a -, then we split the string.
-    // The first part becomes the RPM version, the second part becomes the RPM release. The RPM release is also
-    // not permitted to contain a - character, but a valid SemVer 2.0 version can at most contain one -, so this should
-    // not be an issue.
-    // If the version does not contain a -, then the entire version will be used for the RPM version, and the RPM release
-    // will use the default value of 1.
+    // RPM versions and releases cannot contain the - character.
+    // The base version will never have one, so that is our RPM version (thus we can use the regular .version file for that).
+    // The RPM release will be the metadata+sha, except with dahses replaced by ~.
+    // If no prerelease tag exists, it will default to 1 for the purposes of the RPM release field.
     rpmrel = "1"
-    if (ver.contains("-")) {
-        echo "Version contains a dash. Splitting to create RPM version and release"
-        ver_fields = ver.split("-")
-        // Make sure there was just a single - character
-        if (ver_fields.size() != 2) {
-            error "Version contains unexpected number of dashes (should be exactly 0 or 1): ${ver}"
+    if (gitversion) {
+        // Using gitversion. In this case, we construct our version string using the information we got from gitversion.
+        if (PreReleaseTag != "") {
+            echo "Basing RPM release on PreReleaseTag"
+            rpmrel = PreReleaseTag.replaceAll("-", "~")
         }
-        rpmver = ver_fields[0]
-        rpmrel = ver_fields[1]
-    } else {
-        echo "Version does not contain a dash. Using default of 1 for RPM release"
-        rpmver = ver
+        if (Sha != "") {
+            echo "Appending Sha to RPM release"
+            rpmrel = rpmrel + "+" + Sha.replaceAll("-", "~")
+        }
     }
-
-    echo "RPM version is ${rpmver}"
-    echo "Writing RPM version to .rpm_version"
-    writeFile(file: ".rpm_version", text: rpmver)
 
     echo "RPM release is ${rpmrel}"
     echo "Writing RPM release to .rpm_release"
