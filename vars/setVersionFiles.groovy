@@ -79,11 +79,11 @@ def call() {
 
         echo "Reading PreReleaseTag from gitversion"
         prereleasetag = sh(returnStdout: true, script: "gitversion /output json /showvariable PreReleaseTag /nonormalize").trim()
-        echo "PreReleaseTag is '${PreReleaseTag}'"
+        echo "PreReleaseTag is '${prereleasetag}'"
 
         echo "Reading Sha from gitversion"
-        prereleasetag = sh(returnStdout: true, script: "gitversion /output json /showvariable Sha /nonormalize").trim()
-        echo "Sha is '${Sha}'"
+        sha = sh(returnStdout: true, script: "gitversion /output json /showvariable Sha /nonormalize").trim()
+        echo "Sha is '${sha}'"
     } else {
         // Using dynamic versioning
         echo "No .version file exists -- using dynamic versioning"
@@ -102,15 +102,15 @@ def call() {
         dockerver = basever
         chartver = basever
         // Using gitversion. In this case, we construct our version string using the information we got from gitversion.
-        if (PreReleaseTag != "") {
-            echo "Appending PreReleaseTag to Docker and Chart versions"
-            dockerver = dockerver + "-" + PreReleaseTag
-            chartver = chartver + "-" + PreReleaseTag
+        if (prereleasetag != "") {
+            echo "Appending prereleasetag to Docker and Chart versions"
+            dockerver = dockerver + "-" + prereleasetag
+            chartver = chartver + "-" + prereleasetag
         }
-        if (Sha != "") {
+        if (sha != "") {
             echo "Appending Sha to Docker and Chart versions"
-            dockerver = dockerver + "_" + Sha
-            chartver = chartver + "+" + Sha
+            dockerver = dockerver + "_" + sha
+            chartver = chartver + "+" + sha
         }
         echo "Chart version is ${chartver}"
         echo "Docker version is '${dockerver}'"
@@ -140,13 +140,13 @@ def call() {
     rpmrel = "1"
     if (gitversion) {
         // Using gitversion. In this case, we construct our version string using the information we got from gitversion.
-        if (PreReleaseTag != "") {
-            echo "Basing RPM release on PreReleaseTag"
-            rpmrel = PreReleaseTag.replaceAll("-", "~")
+        if (prereleasetag != "") {
+            echo "Basing RPM release on prereleasetag"
+            rpmrel = prereleasetag.replaceAll("-", "~")
         }
-        if (Sha != "") {
-            echo "Appending Sha to RPM release"
-            rpmrel = rpmrel + "+" + Sha.replaceAll("-", "~")
+        if (sha != "") {
+            echo "Appending sha to RPM release"
+            rpmrel = rpmrel + "+" + sha.replaceAll("-", "~")
         }
     }
 
