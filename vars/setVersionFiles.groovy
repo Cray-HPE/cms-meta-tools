@@ -26,18 +26,23 @@
 
 def call() {
     def basever
-    def gitversion = false
-    def prereleasetag
-    def sha
     def chartver
     def dockerver
+    def gitversion = false
+    def prereleasetag
     def rpmrel
+    def sha
+    def stablebuild = env.IS_STABLE
 
     /// Need the CSM shared library for the getDockerBuildVersion function
     echo "Loading csm-shared-library, if it is not already loaded (an error message about this can be ignored)"
     library 'csm-shared-library'
     
-    if (env.IS_STABLE) {
+    if (stablebuild instanceof String) {
+        stablebuild = stablebuild.toBoolean()
+    }
+
+    if (stablebuild) {
         echo "Generating stable version numbers"
     } else {
         echo "Generating unstable version numbers"
@@ -108,7 +113,7 @@ def call() {
         echo "Generating Docker and Chart versions using gitversion data"
         dockerver = basever
         chartver = basever
-        if (!env.IS_STABLE) {
+        if (!stablebuild) {
             // Using gitversion, unstable artifact.
             // In this case, we construct our version string using the information we got from gitversion.
             if (prereleasetag != "") {
@@ -130,7 +135,7 @@ def call() {
         echo "Docker version is '${dockerver}'"
     } else {
         echo "Calling getDockerBuildVersion to get docker version"
-        dockerver = getDockerBuildVersion(isStable: env.IS_STABLE)
+        dockerver = getDockerBuildVersion(isStable: stablebuild)
         echo "Docker version is ${dockerver}"
 
         echo "Converting docker version string to chart version string"
@@ -152,7 +157,7 @@ def call() {
     // The RPM release will be the metadata+sha, except with dahses replaced by ~.
     // If no prerelease tag exists, it will default to 1 for the purposes of the RPM release field.
     rpmrel = "1"
-    if ((gitversion) && (!env.IS_STABLE)) {
+    if ((gitversion) && (!stablebuild)) {
         // Using gitversion, unstable artifact.
         // In this case, we construct our version string using the information we got from gitversion.
         if (prereleasetag != "") {
