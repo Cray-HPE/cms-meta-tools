@@ -36,6 +36,12 @@ def call() {
     /// Need the CSM shared library for the getDockerBuildVersion function
     echo "Loading csm-shared-library, if it is not already loaded (an error message about this can be ignored)"
     library 'csm-shared-library'
+    
+    if (env.IS_STABLE) {
+        echo "Generating stable version numbers"
+    } else {
+        echo "Generating unstable version numbers"
+    }
 
     ///////////////////
     // Base version
@@ -99,6 +105,7 @@ def call() {
     // Docker version and Chart version
     ///////////////////
     if (gitversion) {
+        echo "Generating Docker and Chart versions using gitversion data"
         dockerver = basever
         chartver = basever
         if (!env.IS_STABLE) {
@@ -108,11 +115,15 @@ def call() {
                 echo "Appending prereleasetag to Docker and Chart versions"
                 dockerver = dockerver + "-" + prereleasetag
                 chartver = chartver + "-" + prereleasetag
+            } else {
+                echo "prereleasetag is empty -- not appending it to Docker and Chart versions"
             }
             if (sha != "") {
                 echo "Appending Sha to Docker and Chart versions"
                 dockerver = dockerver + "_" + sha
                 chartver = chartver + "+" + sha
+            } else {
+                echo "sha is empty -- not appending it to Docker and Chart versions"
             }
         }
         echo "Chart version is ${chartver}"
