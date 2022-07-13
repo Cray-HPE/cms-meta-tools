@@ -92,8 +92,8 @@ def call() {
         prereleasetag = sh(returnStdout: true, script: "gitversion /output json /showvariable PreReleaseTag /nonormalize").trim()
         echo "PreReleaseTag is '${prereleasetag}'"
 
-        echo "Reading Sha from gitversion"
-        sha = sh(returnStdout: true, script: "gitversion /output json /showvariable Sha /nonormalize").trim()
+        echo "Reading ShortSha from gitversion"
+        sha = sh(returnStdout: true, script: "gitversion /output json /showvariable ShortSha /nonormalize").trim()
         echo "Sha is '${sha}'"
     } else {
         // Using dynamic versioning
