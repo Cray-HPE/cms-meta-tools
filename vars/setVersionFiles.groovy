@@ -33,6 +33,7 @@ def call() {
     def rpmrel
     def sha
     def stablebuild = env.IS_STABLE
+    def stablestring
 
     /// Need the CSM shared library for the getDockerBuildVersion function
     echo "Loading csm-shared-library, if it is not already loaded (an error message about this can be ignored)"
@@ -43,10 +44,12 @@ def call() {
     }
 
     if (stablebuild) {
-        echo "Generating stable version numbers"
+        stablestring = "stable"
     } else {
-        echo "Generating unstable version numbers"
+        stablestring = "unstable"
     }
+    echo "Writing '${stablestring}' to .stable"
+    writeFile(file: ".stable", text: stablestring)
 
     ///////////////////
     // Base version
