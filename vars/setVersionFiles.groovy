@@ -59,7 +59,7 @@ def call() {
         echo ".version file exists -- using static versioning"
         echo "Reading base version from .version"
         basever = readFile('.version').trim()
-        echo "Base version is ${basever}"    
+        echo "Base version is ${basever}"
     } else
     if (fileExists('GitVersion.yml')) {
         // Using gitversion versioning
@@ -116,23 +116,21 @@ def call() {
         echo "Generating Docker and Chart versions using gitversion data"
         dockerver = basever
         chartver = basever
-        if (!stablebuild) {
-            // Using gitversion, unstable artifact.
-            // In this case, we construct our version string using the information we got from gitversion.
-            if (prereleasetag != "") {
-                echo "Appending prereleasetag to Docker and Chart versions"
-                dockerver = dockerver + "-" + prereleasetag
-                chartver = chartver + "-" + prereleasetag
-            } else {
-                echo "prereleasetag is empty -- not appending it to Docker and Chart versions"
-            }
-            if (sha != "") {
-                echo "Appending Sha to Docker and Chart versions"
-                dockerver = dockerver + "_" + sha
-                chartver = chartver + "+" + sha
-            } else {
-                echo "sha is empty -- not appending it to Docker and Chart versions"
-            }
+        // We construct our version string using the information we got from gitversion.
+        if (prereleasetag != "") {
+            echo "Appending prereleasetag to Docker and Chart versions"
+            dockerver = dockerver + "-" + prereleasetag
+            chartver = chartver + "-" + prereleasetag
+        } else {
+            echo "prereleasetag is empty -- not appending it to Docker and Chart versions"
+        }
+        // Only use the sha for unstable artifacts
+        if ((!stablebuild) && (sha != "")) {
+            echo "Appending Sha to Docker and Chart versions"
+            dockerver = dockerver + "_" + sha
+            chartver = chartver + "+" + sha
+        } else {
+            echo "stable build or sha is empty -- not appending sha to Docker and Chart versions"
         }
         echo "Chart version is ${chartver}"
         echo "Docker version is '${dockerver}'"
@@ -160,14 +158,14 @@ def call() {
     // The RPM release will be the metadata+sha, except with dahses replaced by ~.
     // If no prerelease tag exists, it will default to 1 for the purposes of the RPM release field.
     rpmrel = "1"
-    if ((gitversion) && (!stablebuild)) {
-        // Using gitversion, unstable artifact.
-        // In this case, we construct our version string using the information we got from gitversion.
+    if (gitversion) {
+        // We construct our RPM release string using the information we got from gitversion.
         if (prereleasetag != "") {
             echo "Basing RPM release on prereleasetag"
             rpmrel = prereleasetag.replaceAll("-", "~")
         }
-        if (sha != "") {
+        // Only use the sha for unstable artifacts
+        if ((!stablebuild) && (sha != "")) {
             echo "Appending sha to RPM release"
             rpmrel = rpmrel + "+" + sha.replaceAll("-", "~")
         }
