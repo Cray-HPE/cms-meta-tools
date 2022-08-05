@@ -33,6 +33,11 @@ from other repo files.
 Use [SemVer](http://semver.org/). The version is located in the [.version](.version) file. Any files
 in the repo which need this version read it directly from this file.
 
+## Changelog
+
+See the [CHANGELOG](CHANGELOG.md) for changes. This file uses the [Keep A Changelog](https://keepachangelog.com)
+format.
+
 ## Copyright and License
 This project is copyrighted by Hewlett Packard Enterprise Development LP and is under the MIT
 license. See the [LICENSE](LICENSE) file for details.
