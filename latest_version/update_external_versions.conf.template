@@ -41,10 +41,10 @@
 # For arti, if type is not specified, it defaults to stable
 #
 # For source docker, the image version will be based on the information found in:
-# https://arti.dev.cray.com/artifactory/<team>-docker-<type>-local/repository.catalog
+# https://arti.hpc.amslabs.hpecorp.net/artifactory/<team>-docker-<type>-local/repository.catalog
 #
 # For source helm, the image version will be based on the information found in:
-# https://arti.dev.cray.com/artifactory/<team>-helm-<type>-local/index.yaml
+# https://arti.hpc.amslabs.hpecorp.net/artifactory/<team>-helm-<type>-local/index.yaml
 #
 ###################
 # server: algol60 #

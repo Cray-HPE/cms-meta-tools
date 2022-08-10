@@ -36,8 +36,8 @@ type: Defaults to stable (unless url is specified, in which case it may still be
 default value if it is not specified)
 
 For server arti:
-docker: use https://arti.dev.cray.com/artifactory/<team>-docker-<type>-local/repository.catalog
-helm: use https://arti.dev.cray.com/artifactory/<team>-helm-<type>-local/index.yaml
+docker: use https://arti.hpc.amslabs.hpecorp.net/artifactory/<team>-docker-<type>-local/repository.catalog
+helm: use https://arti.hpc.amslabs.hpecorp.net/artifactory/<team>-helm-<type>-local/index.yaml
 
 For server algol60:
 docker: use https://artifactory.algol60.net/artifactory/<team>-docker/repository.catalog
@@ -243,7 +243,7 @@ function parse_arguments
 parse_arguments "$@"
 if [ -z "$URL" ]; then
     if [ "$SERVER" = "arti" ]; then
-        URL="https://arti.dev.cray.com/artifactory/${TEAM}-${DOCKER_HELM}-${TYPE}-local"
+        URL="https://arti.hpc.amslabs.hpecorp.net/artifactory/${TEAM}-${DOCKER_HELM}-${TYPE}-local"
         if [ "${DOCKER_HELM}" = helm ]; then
             URL="$URL/index.yaml"
         else

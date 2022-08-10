@@ -22,7 +22,7 @@ Verifies that Go files in a repo pass a linting with `gofmt`
 
 ### [latest_version](latest_version)
 
-Finds the latest version of a docker or helm image on arti.dev.cray.com
+Finds the latest version of a docker or helm image on arti.hpc.amslabs.hpecorp.net
 
 ### [update_versions](update_versions)
 
@@ -32,6 +32,11 @@ from other repo files.
 ## Versioning
 Use [SemVer](http://semver.org/). The version is located in the [.version](.version) file. Any files
 in the repo which need this version read it directly from this file.
+
+## Changelog
+
+See the [CHANGELOG](CHANGELOG.md) for changes. This file uses the [Keep A Changelog](https://keepachangelog.com)
+format.
 
 ## Copyright and License
 This project is copyrighted by Hewlett Packard Enterprise Development LP and is under the MIT
