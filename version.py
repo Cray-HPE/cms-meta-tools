@@ -369,7 +369,7 @@ class BranchVersion(LooseVersion):
     def x(self):
         if self._x:
             return self._x
-        self.myprint("Determing major version number")
+        self.myprint("Determining major version number")
         self._x = self.evaluate_strategies(self.x_strategies)
         self.myprint("Major version number = %s" % self._x)
         return self._x
@@ -378,7 +378,7 @@ class BranchVersion(LooseVersion):
     def y(self):
         if self._y:
             return self._y
-        self.myprint("Determing minor version number")
+        self.myprint("Determining minor version number")
         self._y = self.evaluate_strategies(self.y_strategies)
         self.myprint("Minor version number = %s" % self._y)
         return self._y
@@ -387,7 +387,7 @@ class BranchVersion(LooseVersion):
     def z(self):
         if self._z:
             return self._z
-        self.myprint("Determing patch version number")
+        self.myprint("Determining patch version number")
         self._z = self.evaluate_strategies(self.z_strategies)
         self.myprint("Patch version number = %s" % self._z)
         return self._z
@@ -443,7 +443,7 @@ class ReleaseBranchVersion(BranchVersion):
     def z(self):
         if self._z:
             return self._z
-        self.myprint("Determing patch version number")
+        self.myprint("Determining patch version number")
         self._z = self.evaluate_strategies(self.z_strategies)
         self.myprint("z value = '%s'" % self._z)
         if os.path.exists(".z_offset"):
@@ -492,7 +492,7 @@ class DeveloperBranchVersion(BranchVersion):
     def y(self):
         if self._y:
             return self._y
-        self.myprint("Determing minor version number")
+        self.myprint("Determining minor version number")
         yval = self.evaluate_strategies(self.y_strategies)
         if yval == '0':
             # Dev branches already have a major number of 0. We do not want them
