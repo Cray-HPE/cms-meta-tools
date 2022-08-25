@@ -324,7 +324,7 @@ if version_prefix:
     # 2) The version string starts with our prefix followed by a period, because
     #    there are additional version fields
     # 3) The version string starts with our prefix followed by a dash, indicating
-    #    a prelease id
+    #    a prerelease id
     # 4) The version string starts with our prefix followed by a plus, indicating
     #    a build id
     #
