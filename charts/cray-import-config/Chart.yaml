@@ -34,9 +34,10 @@ sources:
   - https://github.com/Cray-HPE/cray-import-config
 maintainers:
 - email: randy.kleinman@hpe.com
-  name: rkleinman
+  name: rkleinman-hpe
 annotations:
   artifacthub.io/images: |
     - name: cray-product-catalog-update
       image: artifactory.algol60.net/csm-docker/stable/cray-product-catalog-update:1.5.2
   artifacthub.io/license: MIT
+  

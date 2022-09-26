@@ -22,10 +22,7 @@
 # OTHER DEALINGS IN THE SOFTWARE.
 #
 
-# Full image including repo, e.g. dtr.dev.cray.com/cray/config-image:1.2.3
-#                                                   ^                 ^
-#                                                   |                 |
-#                                             ['repository]         [tag]
+# The image that contains the config content (based on cf-gitea-import)
 config_image:
   image:
     repository: ""
@@ -68,3 +65,4 @@ import_job:
   additionalContainers: []
   additionalVolumes: []
   nodeSelector: {}
+  
