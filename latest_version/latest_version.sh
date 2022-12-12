@@ -26,7 +26,10 @@ USAGE="\
 usage: latest_version.sh [--major x [--minor y]]
                          [--docker | --helm] [--type <type>]
                          [[--server <server>] [--team <team>]  | [--url <url>]]
-                         [--outfile <file> [--overwrite]] image_name
+                         [--outfile <file> [--overwrite]]
+                         [--artifactory-username-var <artifactory_username_var>]
+                         [--artifactory-password-var <artifactory_password_var>]
+                         image_name
        latest_version.sh {-h || --help}"
 
 USAGE_EXTRA="\
@@ -135,6 +138,8 @@ OUTFILE=""
 OVERWRITE=N
 SERVER=""
 URL=""
+ARTIFACTORY_USERNAME_VAR=""
+ARTIFACTORY_PASSWORD_VAR=""
 
 function parse_arguments
 {
@@ -209,6 +214,16 @@ function parse_arguments
                 URL="$2"
                 shift 2
                 ;;
+            "--artifactory-username-var")
+                [ -z "$2" ] && usage "Variable name for Artifactory username may not be blank"
+                ARTIFACTORY_USERNAME_VAR="$2"
+                shift 2
+                ;;
+            "--artifactory-password-var")
+                [ -z "$2" ] && usage "Variable name for Artifactory password may not be blank"
+                ARTIFACTORY_PASSWORD_VAR="$2"
+                shift 2
+                ;;
             *)
                 # Must be our image name
                 [ -z "$1" ] && usage "Image name may not be blank"
@@ -238,24 +253,27 @@ function parse_arguments
         [ -z "$TYPE" ] && TYPE="stable"
         [ -z "$SERVER" ] && SERVER="algol60"
     fi
+    # For arti, use ART_COMMON_CREDS_USR/PWD vars provided by DST pipeline.
+    [ -z "$ARTIFACTORY_USERNAME_VAR" ] && ARTIFACTORY_USERNAME_VAR=$([ "$SERVER" == "arti" ] && echo ART_COMMON_CREDS_USR || echo ARTIFACTORY_USERNAME)
+    [ -z "$ARTIFACTORY_PASSWORD_VAR" ] && ARTIFACTORY_PASSWORD_VAR=$([ "$SERVER" == "arti" ] && echo ART_COMMON_CREDS_PWD || echo ARTIFACTORY_PASSWORD)
+    [ -z "${!ARTIFACTORY_USERNAME_VAR}" ] && usage "Artifactory username must be specified via ${ARTIFACTORY_USERNAME_VAR} environment variable. Variable name may be adjusted via --artifactory-username-var parameter."
+    [ -z "${!ARTIFACTORY_PASSWORD_VAR}" ] && usage "Artifactory password must be specified via ${ARTIFACTORY_PASSWORD_VAR} environment variable. Variable name may be adjusted via --artifactory-password-var parameter."
 }
 
 parse_arguments "$@"
 if [ -z "$URL" ]; then
     if [ "$SERVER" = "arti" ]; then
-        URL="https://arti.hpc.amslabs.hpecorp.net/artifactory/${TEAM}-${DOCKER_HELM}-${TYPE}-local"
         if [ "${DOCKER_HELM}" = helm ]; then
-            URL="$URL/index.yaml"
+            URL="https://arti.hpc.amslabs.hpecorp.net/artifactory/${TEAM}-helm-${TYPE}-local/index.yaml"
         else
-            URL="$URL/repository.catalog"
+            URL="https://arti.hpc.amslabs.hpecorp.net/artifactory/api/docker/${TEAM}-docker-${TYPE}-local/v2/${IMAGE_NAME}/tags/list"
         fi
     else
         # algol60
-        URL="https://artifactory.algol60.net/artifactory/${TEAM}-"
         if [ "${DOCKER_HELM}" = helm ]; then
-            URL="${URL}helm-charts/index.yaml"
+            URL="https://artifactory.algol60.net/artifactory/${TEAM}-helm-charts/index.yaml"
         else
-            URL="${URL}docker/repository.catalog"
+            URL="https://artifactory.algol60.net/artifactory/api/docker/${TEAM}-docker/v2/${TYPE}/${IMAGE_NAME}/tags/list"
         fi
     fi
 fi
@@ -267,10 +285,10 @@ if [ "${DOCKER_HELM}" = helm ]; then
 else
     TMPFILE="/tmp/.latest_version.sh.$$.$RANDOM.repository.catalog.json"
 fi
-
+trap "rm -f $TMPFILE" EXIT
 echo "latest_version.sh: url=$URL" 1>&2
 
-if ! curl -sSf -o "$TMPFILE" "$URL" 1>&2 ; then
+if ! curl -sSf -u "${!ARTIFACTORY_USERNAME_VAR}:${!ARTIFACTORY_PASSWORD_VAR}" -o "$TMPFILE" "$URL" 1>&2 ; then
     err_exit "Command failed: curl -sSf -o $TMPFILE $URL"
 fi
 

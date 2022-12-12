@@ -13,3 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Convert to gitflow/gitversion.
 
+## [3.0.0 - 2022-12-12
+### Changed
+- Convert from vendor specific Artifactory API to Docker v2 API
+- Authentiction is now mandatory
+- Cleanup of temporary file
