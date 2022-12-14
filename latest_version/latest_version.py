@@ -258,27 +258,14 @@ if docker_helm == "docker":
     import json
     with open(input_file, "rt") as f:
         docker_data = json.load(f)
-    manifests = docker_data["manifests"]
-    # The manifests are strings of the form 
-    # image_name/version/manifest.json              (arti.dev format)
-    # or
-    # image_type/image_name/version/manifest.json   (algol60 format)
-    #
-    # For this tool, we assume that if image_type has been specified to us, then we're dealing with
-    # the second format, otherwise we are dealing with the first format
-
-    if image_type == None:
-        # Now we just look for manifest strings that begin with image_name/
-        # and extract the second /-separated field
-        image_prefix = image_name + "/"
-        field_index = 1
-    else:
-        # look for manifest strings that begin with image_type/image_name/
-        # and extract the third /-separated field
-        image_prefix = image_type + "/" + image_name + "/"
-        field_index = 2
-
-    all_versions = [ m.split('/')[field_index] for m in manifests if m.find(image_prefix) == 0 ]
+    # The Docker API call to /v2/{image_name}/tags/list returns the following JSON structure:
+    # {
+    #     "name": "image_name",
+    #     "tags": [
+    #         "tag1",
+    #         "tag2",
+    #         ...
+    all_versions = docker_data["tags"]
 else:
     import yaml
     with open(input_file, "rt") as f:
@@ -324,7 +311,7 @@ if version_prefix:
     # 2) The version string starts with our prefix followed by a period, because
     #    there are additional version fields
     # 3) The version string starts with our prefix followed by a dash, indicating
-    #    a prelease id
+    #    a prerelease id
     # 4) The version string starts with our prefix followed by a plus, indicating
     #    a build id
     #
