@@ -253,9 +253,9 @@ function parse_arguments
         [ -z "$TYPE" ] && TYPE="stable"
         [ -z "$SERVER" ] && SERVER="algol60"
     fi
-    # For arti, use ART_COMMON_CREDS_USR/PWD vars provided by DST pipeline.
+    # For arti, use ART_COMMON_CREDS_USR/PSW vars provided by DST pipeline.
     [ -z "$ARTIFACTORY_USERNAME_VAR" ] && ARTIFACTORY_USERNAME_VAR=$([ "$SERVER" == "arti" ] && echo ART_COMMON_CREDS_USR || echo ARTIFACTORY_USERNAME)
-    [ -z "$ARTIFACTORY_PASSWORD_VAR" ] && ARTIFACTORY_PASSWORD_VAR=$([ "$SERVER" == "arti" ] && echo ART_COMMON_CREDS_PWD || echo ARTIFACTORY_PASSWORD)
+    [ -z "$ARTIFACTORY_PASSWORD_VAR" ] && ARTIFACTORY_PASSWORD_VAR=$([ "$SERVER" == "arti" ] && echo ART_COMMON_CREDS_PSW || echo ARTIFACTORY_PASSWORD)
     [ -z "${!ARTIFACTORY_USERNAME_VAR}" ] && usage "Artifactory username must be specified via ${ARTIFACTORY_USERNAME_VAR} environment variable. Variable name may be adjusted via --artifactory-username-var parameter."
     [ -z "${!ARTIFACTORY_PASSWORD_VAR}" ] && usage "Artifactory password must be specified via ${ARTIFACTORY_PASSWORD_VAR} environment variable. Variable name may be adjusted via --artifactory-password-var parameter."
 }
