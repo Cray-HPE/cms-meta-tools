@@ -28,7 +28,7 @@
 # the problem.
 
 # The following two variables determine which versions of the cms-meta-tools RPM will be considered
-REL_MAJOR=2
+REL_MAJOR=3
 REL_MINOR=0
 CMT_RPMS_URL=https://artifactory.algol60.net/artifactory/csm-rpms/hpe/stable/sle-15sp2/cms-meta-tools/noarch/
 RETRY_MINUTES=10
