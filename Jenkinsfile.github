@@ -44,12 +44,11 @@ pipeline {
 
     stages {
         stage("Set Versions") {
+            environment {
+                setVersionFiles = load("${env.WORKSPACE}/vars/setVersionFiles.groovy")
+            }
             steps {
-                script {
-                    // Load vars/setVersionFiles.groovy
-                    def setVersionFiles = load("${env.WORKSPACE}/vars/setVersionFiles.groovy")
-                    setVersionFiles.call()
-                }
+                setVersionFiles.call()
             }
         }
 
