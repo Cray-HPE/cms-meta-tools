@@ -38,17 +38,18 @@ pipeline {
     environment {
         NAME = "cms-meta-tools"
         DESCRIPTION = "Cray Management System - Meta Tools"
-        RPM_VERSION = sh(returnStdout: true, script: "./version.py").trim()
         IS_STABLE = getBuildIsStable()
         BUILD_METADATA = getRpmRevision(isStable: env.IS_STABLE)
     }
 
     stages {
         stage("Set Versions") {
-            node {
-                // Load vars/setVersionFiles.groovy
-                def setVersionFiles = load pwd() + "/vars/setVersionFiles.groovy"
-                setVersionFiles.call()
+            steps {
+                node {
+                    // Load vars/setVersionFiles.groovy
+                    def setVersionFiles = load pwd() + "/vars/setVersionFiles.groovy"
+                    setVersionFiles.call()
+                }
             }
         }
 
