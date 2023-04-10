@@ -47,8 +47,7 @@ pipeline {
             steps {
                 script {
                     // Load vars/setVersionFiles.groovy
-                    def rootDir = pwd()
-                    def setVersionFiles = load("${rootDir}/vars/setVersionFiles.groovy")
+                    def setVersionFiles = load("${env.WORKSPACE}/vars/setVersionFiles.groovy")
                     setVersionFiles.call()
                 }
             }
