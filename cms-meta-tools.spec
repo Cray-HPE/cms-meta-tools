@@ -1,4 +1,4 @@
-# Copyright 2021 Hewlett Packard Enterprise Development LP
+# Copyright 2021,2023 Hewlett Packard Enterprise Development LP
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -26,13 +26,14 @@ Summary: Backend tools used to build and support CMS projects
 Group: System/Management
 # The placeholder version string will be replaced at repo build time by
 # the BuildPrep script
-Version: @VERSION@
-Release: %(echo ${BUILD_METADATA})
+Version: @RPM_VERSION@
+Release: @RPM_RELEASE@
 # At this point the RPM contains no binaries that would make it
 # architecture-specific
 BuildArch: noarch
-Source: %{name}-%{version}.tar.bz2
-Vendor: Cray Inc.
+Source: %{name}-@RPM_VERSION@-@RPM_RELEASE@.tar.bz2
+Vendor: HPE
+BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}
 Requires: bash
 Requires: git >= 1.8.3
 # Needed for gofmt tool

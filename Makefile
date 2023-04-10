@@ -1,7 +1,7 @@
 #
 # MIT License
 #
-# (C) Copyright 2021-2022 Hewlett Packard Enterprise Development LP
+# (C) Copyright 2021-2023 Hewlett Packard Enterprise Development LP
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -22,14 +22,15 @@
 # OTHER DEALINGS IN THE SOFTWARE.
 #
 NAME ?= cms-meta-tools
-RPM_VERSION ?= $(shell ./version.py)
+RPM_VERSION ?= $(shell head -1 .version)
+RPM_RELEASE ?= $(shell head -1 .rpm_release)
 
 BUILD_METADATA ?= "1~development~$(shell git rev-parse --short HEAD)"
 BUILD_DIR ?= $(PWD)/dist/rpmbuild
 
 SPEC_NAME ?= cms-meta-tools
 SPEC_FILE ?= ${SPEC_NAME}.spec
-SOURCE_NAME ?= ${SPEC_NAME}-${RPM_VERSION}
+SOURCE_NAME ?= ${SPEC_NAME}-${RPM_VERSION}-${RPM_RELEASE}
 SOURCE_PATH := ${BUILD_DIR}/SOURCES/${SOURCE_NAME}.tar.bz2
 
 all : build_prep lint prepare rpm
