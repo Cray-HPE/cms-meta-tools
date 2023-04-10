@@ -45,9 +45,9 @@ pipeline {
     stages {
         stage("Set Versions") {
             steps {
-                node {
+                script {
                     // Load vars/setVersionFiles.groovy
-                    def setVersionFiles = load pwd() + "/vars/setVersionFiles.groovy"
+                    def setVersionFiles = load("${env.WORKSPACE}/vars/setVersionFiles.groovy")
                     setVersionFiles.call()
                 }
             }
