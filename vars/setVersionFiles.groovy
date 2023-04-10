@@ -2,7 +2,7 @@
  *
  *  MIT License
  *
- *  (C) Copyright 2021-2022 Hewlett Packard Enterprise Development LP
+ *  (C) Copyright 2021-2023 Hewlett Packard Enterprise Development LP
  *
  *  Permission is hereby granted, free of charge, to any person obtaining a
  *  copy of this software and associated documentation files (the "Software"),
@@ -181,3 +181,5 @@ def call() {
     // The base version string is also what is used for Python modules, which is
     // why there are no .xxxx_version files generated for those
 }
+
+return this
