@@ -1,6 +1,6 @@
 # latest_version
 
-Set of tools to find the latest stable version of a docker or helm image.
+Set of tools to find the latest stable version of a docker image, helm chart, or Python module.
 
 ## update_external_versions
 

@@ -2,7 +2,7 @@
 #
 # MIT License
 #
-# (C) Copyright 2021-2022 Hewlett Packard Enterprise Development LP
+# (C) Copyright 2021-2023 Hewlett Packard Enterprise Development LP
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -24,7 +24,7 @@
 #
 USAGE="\
 usage: latest_version.sh [--major x [--minor y]]
-                         [--docker | --helm] [--type <type>]
+                         [--docker | --helm | --python] [--type <type>]
                          [[--server <server>] [--team <team>]  | [--url <url>]]
                          [--outfile <file> [--overwrite]]
                          [--artifactory-username-var <artifactory_username_var>]
@@ -41,14 +41,17 @@ default value if it is not specified)
 For server arti:
 docker: use https://arti.hpc.amslabs.hpecorp.net/artifactory/<team>-docker-<type>-local/repository.catalog
 helm: use https://arti.hpc.amslabs.hpecorp.net/artifactory/<team>-helm-<type>-local/index.yaml
+python: use https://arti.hpc.amslabs.hpecorp.net/artifactory/csm-python-modules-local/simple/<module_name>/
 
 For server algol60:
 docker: use https://artifactory.algol60.net/artifactory/<team>-docker/repository.catalog
 helm: use https://artifactory.algol60.net/artifactory/<team>-helm-charts/index.yaml
+python: use https://artifactory.algol60.net/artifactory/csm-python-modules/simple/<module_name>/
 
 For url, the file at the specified URL will be used.
 docker: Assumes file is in the same JSON format as the arti/algol60 repository.catalog files
 helm: Assumes file is in the same YAML format as the arti/algol60 index.yaml files
+python: Assumes directory index of .tar.gz files and -py3-none-any.whl files.
 
 Looks in file for newest version of specified image name, and returns the version string.
 If a major is specified, it confines itself to versions of that major number.
@@ -133,7 +136,7 @@ MAJOR=""
 MINOR=""
 TEAM=""
 TYPE=""
-DOCKER_HELM=""
+DOCK_HELM_PYTH=""
 OUTFILE=""
 OVERWRITE=N
 SERVER=""
@@ -145,9 +148,9 @@ function parse_arguments
 {
     while [ $# -gt 0 ]; do
         case "$1" in
-            "--docker"|"--helm")
-                [ -n "$DOCKER_HELM" ] && usage "--docker and --helm must be specified no more than once total"
-                DOCKER_HELM=$(echo "$1" | sed 's/^[-][-]//')
+            "--docker"|"--helm"|"--python")
+                [ -n "$DOCK_HELM_PYTH" ] && usage "--docker, --helm, and --python must be specified no more than once total"
+                DOCK_HELM_PYTH=$(echo "$1" | sed 's/^[-][-]//')
                 shift
                 ;;
             "--major")
@@ -235,7 +238,7 @@ function parse_arguments
         esac
     done
     [ -z "$IMAGE_NAME" ] && usage "Image name must be specified"
-    [ -z "$DOCKER_HELM" ] && DOCKER_HELM="docker"
+    [ -z "$DOCK_HELM_PYTH" ] && DOCK_HELM_PYTH="docker"
     [ -n "$MINOR" ] && [ -z "$MAJOR" ] && usage "--minor may not be specified without --major"
     [ -z "$OUTFILE" ] && OUTFILE="${IMAGE_NAME}.version"
     if [ -e "$OUTFILE" ]; then
@@ -263,28 +266,29 @@ function parse_arguments
 parse_arguments "$@"
 if [ -z "$URL" ]; then
     if [ "$SERVER" = "arti" ]; then
-        if [ "${DOCKER_HELM}" = helm ]; then
-            URL="https://arti.hpc.amslabs.hpecorp.net/artifactory/${TEAM}-helm-${TYPE}-local/index.yaml"
-        else
-            URL="https://arti.hpc.amslabs.hpecorp.net/artifactory/api/docker/${TEAM}-docker-${TYPE}-local/v2/${IMAGE_NAME}/tags/list"
-        fi
+        case "${DOCK_HELM_PYTH}" in
+            "docker") URL="https://arti.hpc.amslabs.hpecorp.net/artifactory/api/docker/${TEAM}-docker-${TYPE}-local/v2/${IMAGE_NAME}/tags/list" ;;
+            "helm")   URL="https://arti.hpc.amslabs.hpecorp.net/artifactory/${TEAM}-helm-${TYPE}-local/index.yaml" ;;
+            "python") URL="https://arti.hpc.amslabs.hpecorp.net/artifactory/csm-python-modules-local/simple/${IMAGE_NAME}/" ;;
+        esac
     else
         # algol60
-        if [ "${DOCKER_HELM}" = helm ]; then
-            URL="https://artifactory.algol60.net/artifactory/${TEAM}-helm-charts/index.yaml"
-        else
-            URL="https://artifactory.algol60.net/artifactory/api/docker/${TEAM}-docker/v2/${TYPE}/${IMAGE_NAME}/tags/list"
-        fi
+        case "${DOCK_HELM_PYTH}" in
+            "docker") URL="https://artifactory.algol60.net/artifactory/api/docker/${TEAM}-docker/v2/${TYPE}/${IMAGE_NAME}/tags/list" ;;
+            "helm")   URL="https://artifactory.algol60.net/artifactory/${TEAM}-helm-charts/index.yaml" ;;
+            "python") URL="https://artifactory.algol60.net/artifactory/csm-python-modules/simple/${IMAGE_NAME}/" ;;
+        esac
     fi
 fi
 
-if [ "${DOCKER_HELM}" = helm ]; then
-    # Test to see if yaml module is available
-    . "${CMS_META_TOOLS_PATH}/utils/pyyaml.sh"
-    TMPFILE="/tmp/.latest_version.sh.$$.$RANDOM.index.yaml"
-else
-    TMPFILE="/tmp/.latest_version.sh.$$.$RANDOM.repository.catalog.json"
-fi
+case "${DOCK_HELM_PYTH}" in
+    "docker")   TMPFILE="/tmp/.latest_version.sh.$$.$RANDOM.repository.catalog.json" ;;
+    "helm")     # Test to see if yaml module is available
+                . "${CMS_META_TOOLS_PATH}/utils/pyyaml.sh"
+                TMPFILE="/tmp/.latest_version.sh.$$.$RANDOM.index.yaml" ;;
+    "python")   TMPFILE="/tmp/.latest_version.sh.$$.$RANDOM.html" ;;
+esac
+
 trap "rm -f $TMPFILE" EXIT
 echo "latest_version.sh: url=$URL" 1>&2
 
@@ -292,23 +296,39 @@ if ! curl -sSf -u "${!ARTIFACTORY_USERNAME_VAR}:${!ARTIFACTORY_PASSWORD_VAR}" -o
     err_exit "Command failed: curl -sSf -o $TMPFILE $URL"
 fi
 
-# Construct our list of optional arguments to latest_version.py
-OPTIONAL_ARGS=""
-
-# Even if it is set, we do not pass in the type argument if we are
-# using arti, because for arti the type is baked into the URL itself
-if [ -n "$TYPE" ] && [ "$SERVER" != "arti" ]; then
-    OPTIONAL_ARGS="${OPTIONAL_ARGS} --type $TYPE"
-fi
-if [ -n "$MAJOR" ]; then
-    OPTIONAL_ARGS="${OPTIONAL_ARGS} --major $MAJOR"
-    if [ -n "$MINOR" ]; then
-        OPTIONAL_ARGS="${OPTIONAL_ARGS} --minor $MINOR"
+if [ "${DOCK_HELM_PYTH}" == python ]; then
+    # Extract just the version strings from the index, sort them by version, take the first one
+    # Some of the Python package files used underscores instead of dashes, so we will search for either.
+    image_regex=${IMAGE_NAME//[-_]/[-_]}
+    version_regex="^"
+    if [[ -n ${MAJOR} ]]; then
+        version_regex+="${MAJOR}[.]"
+        [[ -n ${MINOR} ]] && version_regex+="${MINOR}[.]"
     fi
+    UEV=$(grep -Eo "\"${image_regex}-([0-9]+[.]){2}[0-9]+(-py3-none-any[.]whl|[.]tar[.]gz)\"" "${TMPFILE}" |
+            sed -e "s/^\"${image_regex}-//" -e "s/-py3-none-any[.]whl\"$//" -e "s/[.]tar[.]gz\"$//" |
+            grep -E "${version_regex}" | sort -uVr | head -1)
+    [[ ! $UEV =~ ^[0-9]+[.][0-9]+[.][0-9]+$ ]] && err_exit "Unable to determine latest available version of ${IMAGE_NAME} Python module"
+else
+    # Construct our list of optional arguments to latest_version.py
+    OPTIONAL_ARGS=""
+
+    # Even if it is set, we do not pass in the type argument if we are
+    # using arti, because for arti the type is baked into the URL itself
+    if [ -n "$TYPE" ] && [ "$SERVER" != "arti" ]; then
+        OPTIONAL_ARGS="${OPTIONAL_ARGS} --type $TYPE"
+    fi
+    if [ -n "$MAJOR" ]; then
+        OPTIONAL_ARGS="${OPTIONAL_ARGS} --major $MAJOR"
+        if [ -n "$MINOR" ]; then
+            OPTIONAL_ARGS="${OPTIONAL_ARGS} --minor $MINOR"
+        fi
+    fi
+
+    # Now call latest_version.py located in this directory
+    UEV=$("$MYDIR_PATH/latest_version.py" "--${DOCK_HELM_PYTH}" --file "$TMPFILE" --image "${IMAGE_NAME}" ${OPTIONAL_ARGS}) || exit 1
 fi
 
-# Now call latest_version.py located in this directory
-UEV=$("$MYDIR_PATH/latest_version.py" "--${DOCKER_HELM}" --file "$TMPFILE" --image "${IMAGE_NAME}" ${OPTIONAL_ARGS}) || exit 1
 info "Found version ${UEV} of ${IMAGE_NAME}"
 echo "$UEV" > $OUTFILE && exit 0
 err_exit "Error writing to $OUTFILE"

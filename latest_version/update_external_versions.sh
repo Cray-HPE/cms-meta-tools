@@ -2,7 +2,7 @@
 #
 # MIT License
 #
-# (C) Copyright 2021-2022 Hewlett Packard Enterprise Development LP
+# (C) Copyright 2021-2023 Hewlett Packard Enterprise Development LP
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -107,10 +107,10 @@ function update_tags
                 lv_args=("--overwrite")
                 ;;
             "source")
-                if [ "$field_value" = docker ] || [ "$field_value" = helm ]; then
+                if [ "$field_value" = docker ] || [ "$field_value" = helm ] || [ "$field_value" = python ]; then
                     lv_args+=("--$field_value")
                 else
-                    err_exit "Source field may only be set to docker or helm. Invalid value: $field_value"
+                    err_exit "Source field may only be set to docker, helm, or python. Invalid value: $field_value"
                 fi
                 ;;
             *)

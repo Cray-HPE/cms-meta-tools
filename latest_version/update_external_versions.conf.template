@@ -10,7 +10,7 @@
 #    minor: minor number
 #    outfile: target filename
 #    server: arti or algol60
-#    source: docker or helm
+#    source: docker or helm or python
 #    team: team name
 #    type: build type
 #    url: url of repository.catalog (for docker) or index.yaml (for helm)
@@ -26,13 +26,16 @@
 # outfile defines the name of the file that the version will be written to.
 # If not specified, it defaults to <image_name>.version
 #
-# server specifies whether the image search should be done on arti.dev or algol60.net
+# server specifies whether the image search should be done on arti (arti.hpc.amslabs.hpecorp.net)
+# or algol60 (artifactory.algol60.net).
 # If not specified, it defaults to algol60
 #
 # If source is not specified, it defaults to docker.
 # If team is not specified, it defaults to csm.
 #
-# The source, team, and type fields specify where on the server the image search should be done.
+# The source, team, and type fields specify where on the server the image search should be done,
+# except for python modules, where the type and team fields are ignored. Also, for Python it
+# excludes all versions which are not of the form x.y.z where x, y, and z are all non-negative integers.
 #
 ################
 # server: arti #
@@ -46,6 +49,10 @@
 # For source helm, the image version will be based on the information found in:
 # https://arti.hpc.amslabs.hpecorp.net/artifactory/<team>-helm-<type>-local/index.yaml
 #
+# For source python, the image version will be chosen from those available in:
+# https://arti.hpc.amslabs.hpecorp.net/artifactory/csm-python-modules-local/simple/<module_name>/
+#
+#
 ###################
 # server: algol60 #
 ###################
@@ -58,8 +65,11 @@
 # For source helm, the image version will be based on the information found in:
 # https://artifactory.algol60.net/artifactory/<team>-helm-charts/index.yaml
 #
-# For algol60, the type field is used within these files to distinguish between
-# stable and unstable images by looking at the path to the images.
+# For algol60, for docker and helm sources, the type field is used within these files to
+# distinguish between stable and unstable images by looking at the path to the images.
+#
+# For source python, the image version will be chosen from those available in:
+# https://artifactory.algol60.net/artifactory/csm-python-modules/simple/<module_name>/
 #
 #######
 # url #
@@ -77,6 +87,9 @@
 # no images will be found. Alternatively, if the specified file does NOT include the image type
 # in the file paths (like on arti.dev), the type parameter should be omitted entirely, otherwise
 # no images will be found.
+#
+# For source python, it assumes the target is a directory listing of .tar.gz files, like with arti/algol60.
+# In this case, the type field is ignored.
 
 image: my_image_name
     major: 1
