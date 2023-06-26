@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.2.0] - 2023-06-26
+### Changed
+- Added logic to setVersions function to ensure that for repos using gitversion, all unstable
+  artifacts will have versions that include a prerelease tag.
+
 ## [3.1.0] - 2023-06-05
 ### Added
 - Added support for stable Python modules to update_external_versions

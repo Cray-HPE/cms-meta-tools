@@ -2,7 +2,7 @@
  *
  *  MIT License
  *
- *  (C) Copyright 2021-2022 Hewlett Packard Enterprise Development LP
+ *  (C) Copyright 2021-2023 Hewlett Packard Enterprise Development LP
  *
  *  Permission is hereby granted, free of charge, to any person obtaining a
  *  copy of this software and associated documentation files (the "Software"),
@@ -86,14 +86,66 @@ def call() {
         } else {
             error "Cloned repository is missing develop or main branch, required for gitversion functionality"
         }
+
         echo "Reading base version from gitversion"
         basever = sh(returnStdout: true, script: "gitversion /output json /showvariable MajorMinorPatch /nonormalize").trim()
-        echo "Writing version '${basever}' to .version"
-        writeFile(file: ".version", text: basever)
+        echo "Base version is '${basever}'"
 
         echo "Reading PreReleaseTag from gitversion"
         prereleasetag = sh(returnStdout: true, script: "gitversion /output json /showvariable PreReleaseTag /nonormalize").trim()
         echo "PreReleaseTag is '${prereleasetag}'"
+
+        // If we are building an unstable artifact, then we want to ensure that there is a prerelease tag.
+        // The only time this will not be the case is if this commit has been tagged with a semver version string
+        // that lacks a prerelease tag itself (e.g. v2.5.0). In this case, we want to modify the tags so that gitversion
+        // generates a version with a prerelease tag.
+        if ((!stablebuild) && (prereleasetag == "")) {
+            echo "Unstable build with no prerelease tag is undesirable."
+
+            // Get the list of tags on this commit
+            gittags = sh(returnStdout: true, script: "git tag --points-at").trim()
+            echo "Found these tag(s) on this commit: ${gittags}"
+
+            // Delete the tags on this commit locally
+            for (gittag in gittags.split()) {
+                echo "Deleting git tag: '${gittag}'"
+                sh(script: "git tag -d ${gittag}")
+            }
+
+            // Add a new tag: current_version-unstable
+            newgittag = "v${basever}-unstable"
+            echo "Tagging current commit '${newgittag}'"
+            sh(script: "git tag ${newgittag}")
+
+            // Re-read the base version and pre-release tags
+            echo "Reading base version from gitversion"
+            basever = sh(returnStdout: true, script: "gitversion /output json /showvariable MajorMinorPatch /nonormalize").trim()
+            echo "Base version is '${basever}'"
+            echo "Writing version '${basever}' to .version"
+            writeFile(file: ".version", text: basever)
+
+            echo "Reading PreReleaseTag from gitversion"
+            prereleasetag = sh(returnStdout: true, script: "gitversion /output json /showvariable PreReleaseTag /nonormalize").trim()
+            echo "PreReleaseTag is '${prereleasetag}'"
+
+            // The above tagging gymmastics should prevent this, but as a last resort, add -unstable prerelease tag
+            if (prereleasetag == "") {
+                prereleasetag = "unstable"
+                echo "Manually overriding PreReleaseTag to '${prereleasetag}'"
+            }
+
+            // While it should not matter, let's tidy up and put the local git tags back the way that we found them.
+            echo "Deleting git tag: '${newgittag}'"
+            sh(script: "git tag -d ${newgittag}")
+
+            for (gittag in gittags.split()) {
+                echo "Recreating git tag: '${gittag}'"
+                sh(script: "git tag ${gittag}")
+            }
+        } else {
+            echo "Writing version '${basever}' to .version"
+            writeFile(file: ".version", text: basever)
+        }
 
         echo "Reading ShortSha from gitversion"
         sha = sh(returnStdout: true, script: "gitversion /output json /showvariable ShortSha /nonormalize").trim()
