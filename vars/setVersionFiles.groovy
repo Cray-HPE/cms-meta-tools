@@ -98,7 +98,7 @@ def call() {
         // The only time this will not be the case is if this commit has been tagged with a semver version string
         // that lacks a prerelease tag itself (e.g. v2.5.0). In this case, we want to modify the tags so that gitversion
         // generates a version with a prerelease tag.
-        if (!stablebuild) && (prereleasetag == "") {
+        if ((!stablebuild) && (prereleasetag == "")) {
             echo "Unstable build with no prerelease tag is undesirable."
 
             // Get the list of tags on this commit
