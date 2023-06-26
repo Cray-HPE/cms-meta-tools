@@ -89,6 +89,7 @@ def call() {
 
         echo "Reading base version from gitversion"
         basever = sh(returnStdout: true, script: "gitversion /output json /showvariable MajorMinorPatch /nonormalize").trim()
+        echo "Base version is '${basever}'"
 
         echo "Reading PreReleaseTag from gitversion"
         prereleasetag = sh(returnStdout: true, script: "gitversion /output json /showvariable PreReleaseTag /nonormalize").trim()
@@ -119,6 +120,7 @@ def call() {
             // Re-read the base version and pre-release tags
             echo "Reading base version from gitversion"
             basever = sh(returnStdout: true, script: "gitversion /output json /showvariable MajorMinorPatch /nonormalize").trim()
+            echo "Base version is '${basever}'"
             echo "Writing version '${basever}' to .version"
             writeFile(file: ".version", text: basever)
 
