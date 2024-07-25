@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.3.0] - 2024-07-25
+### Changed
+- Disabled concurrent Jenkins builds on same branch/commit
+- Added build timeout to avoid hung builds
+- Modify setVersions to check version of gitversion and update config file to handle it, if needed
+
 ## [3.2.0] - 2023-06-26
 ### Changed
 - Added logic to setVersions function to ensure that for repos using gitversion, all unstable

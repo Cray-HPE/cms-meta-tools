@@ -2,7 +2,7 @@
  *
  *  MIT License
  *
- *  (C) Copyright 2021-2023 Hewlett Packard Enterprise Development LP
+ *  (C) Copyright 2021-2024 Hewlett Packard Enterprise Development LP
  *
  *  Permission is hereby granted, free of charge, to any person obtaining a
  *  copy of this software and associated documentation files (the "Software"),
@@ -29,6 +29,9 @@ def call() {
     def chartver
     def dockerver
     def gitversion = false
+    def gvfull
+    def gvmajor
+    def gvcfgtext
     def prereleasetag
     def rpmrel
     def sha
@@ -85,6 +88,27 @@ def call() {
             }
         } else {
             error "Cloned repository is missing develop or main branch, required for gitversion functionality"
+        }
+
+        // Our gitversion config files were written for gitversion < v6
+        // v6 introduced breaking changes in the config file. Specifically, 3 properties were renamed: 
+        // continuous-delivery-fallback-tag, tag-number-pattern, and tag were renamed to
+        // continuous-delivery-fallback-label, label-number-pattern, and label respectively
+        // https://github.com/GitTools/GitVersion/blob/main/BREAKING_CHANGES.md#v600
+        echo "Checking version of gitversion"
+        gvfull = sh(returnStdout: true, script: "gitversion /version 2>&1").trim()
+        echo "gitversion version is '${gvfull}'"
+        gvmajor = gvfull.tokenize('.')[0].toInteger()
+        echo "gitversion major version number is '${gvmajor}'"
+        if (gvmajor > 5) {
+            // Modify config file to accomodate above changes
+            echo "Modifying GitVersion.yml to work with gitversion >= v6"
+            gvcfgtext = readFile('GitVersion.yml')
+            gvcfgtext = gvcfgtext.replaceAll(/(^|\n)([^\S\r\n]*)tag:/, '$1$2label:')
+            gvcfgtext = gvcfgtext.replaceAll(/(^|\n)([^\S\r\n]*)continuous-delivery-fallback-tag:/, '$1$2continuous-delivery-fallback-label:')
+            gvcfgtext = gvcfgtext.replaceAll(/(^|\n)([^\S\r\n]*)tag-number-pattern:/, '$1$2label-number-pattern:')
+            writeFile(file: 'GitVersion.yml', text: gvcfgtext)
+            sh "cat GitVersion.yml"
         }
 
         echo "Reading base version from gitversion"
