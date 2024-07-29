@@ -90,33 +90,12 @@ def call() {
             error "Cloned repository is missing develop or main branch, required for gitversion functionality"
         }
 
-        // Our gitversion config files were written for gitversion < v6
-        // v6 introduced breaking changes in the config file. Specifically, 3 properties were renamed: 
-        // continuous-delivery-fallback-tag, tag-number-pattern, and tag were renamed to
-        // continuous-delivery-fallback-label, label-number-pattern, and label respectively
-        // https://github.com/GitTools/GitVersion/blob/main/BREAKING_CHANGES.md#v600
-        echo "Checking version of gitversion"
-        gvfull = sh(returnStdout: true, script: "gitversion /version 2>&1").trim()
-        echo "gitversion version is '${gvfull}'"
-        gvmajor = gvfull.tokenize('.')[0].toInteger()
-        echo "gitversion major version number is '${gvmajor}'"
-        if (gvmajor > 5) {
-            // Modify config file to accomodate above changes
-            echo "Modifying GitVersion.yml to work with gitversion >= v6"
-            gvcfgtext = readFile('GitVersion.yml')
-            gvcfgtext = gvcfgtext.replaceAll(/(^|\n)([^\S\r\n]*)tag:/, '$1$2label:')
-            gvcfgtext = gvcfgtext.replaceAll(/(^|\n)([^\S\r\n]*)continuous-delivery-fallback-tag:/, '$1$2continuous-delivery-fallback-label:')
-            gvcfgtext = gvcfgtext.replaceAll(/(^|\n)([^\S\r\n]*)tag-number-pattern:/, '$1$2label-number-pattern:')
-            writeFile(file: 'GitVersion.yml', text: gvcfgtext)
-            sh "cat GitVersion.yml"
-        }
-
         echo "Reading base version from gitversion"
-        basever = sh(returnStdout: true, script: "gitversion /output json /showvariable MajorMinorPatch /nonormalize").trim()
+        basever = sh(returnStdout: true, script: 'docker run --rm -v "$(pwd):/repo" docker.io/gittools/gitversion:latest-5.0 /repo /output json /showvariable MajorMinorPatch /nonormalize').trim()
         echo "Base version is '${basever}'"
 
         echo "Reading PreReleaseTag from gitversion"
-        prereleasetag = sh(returnStdout: true, script: "gitversion /output json /showvariable PreReleaseTag /nonormalize").trim()
+        prereleasetag = sh(returnStdout: true, script: 'docker run --rm -v "$(pwd):/repo" docker.io/gittools/gitversion:latest-5.0 /repo /output json /showvariable PreReleaseTag /nonormalize').trim()
         echo "PreReleaseTag is '${prereleasetag}'"
 
         // If we are building an unstable artifact, then we want to ensure that there is a prerelease tag.
@@ -143,13 +122,13 @@ def call() {
 
             // Re-read the base version and pre-release tags
             echo "Reading base version from gitversion"
-            basever = sh(returnStdout: true, script: "gitversion /output json /showvariable MajorMinorPatch /nonormalize").trim()
+            basever = sh(returnStdout: true, script: 'docker run --rm -v "$(pwd):/repo" docker.io/gittools/gitversion:latest-5.0 /repo /output json /showvariable MajorMinorPatch /nonormalize').trim()
             echo "Base version is '${basever}'"
             echo "Writing version '${basever}' to .version"
             writeFile(file: ".version", text: basever)
 
             echo "Reading PreReleaseTag from gitversion"
-            prereleasetag = sh(returnStdout: true, script: "gitversion /output json /showvariable PreReleaseTag /nonormalize").trim()
+            prereleasetag = sh(returnStdout: true, script: 'docker run --rm -v "$(pwd):/repo" docker.io/gittools/gitversion:latest-5.0 /repo /output json /showvariable PreReleaseTag /nonormalize').trim()
             echo "PreReleaseTag is '${prereleasetag}'"
 
             // The above tagging gymmastics should prevent this, but as a last resort, add -unstable prerelease tag
@@ -172,7 +151,7 @@ def call() {
         }
 
         echo "Reading ShortSha from gitversion"
-        sha = sh(returnStdout: true, script: "gitversion /output json /showvariable ShortSha /nonormalize").trim()
+        sha = sh(returnStdout: true, script: 'docker run --rm -v "$(pwd):/repo" docker.io/gittools/gitversion:latest-5.0 /repo /output json /showvariable ShortSha /nonormalize').trim()
         echo "Sha is '${sha}'"
     } else {
         // Using dynamic versioning
