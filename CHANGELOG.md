@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.4.0] - 2024-07-29
+### Changed
+- Use GitVersion v5 docker image instead of relying on whatever version is installed in build environment
+
+### Removed
+- Remove modifications from v3.3 to handle gitversion v6
+
 ## [3.3.0] - 2024-07-25
 ### Changed
 - Disabled concurrent Jenkins builds on same branch/commit
