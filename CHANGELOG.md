@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.5.0] - 2024-08-02
+### Changed
+- Modify `git_info` tool to allow for Dockerfiles that have uppercase `as` in their FROM lines
+- `cloneCMSMetaTools.groovy`: After cloning, do a git log to show the head of the cloned repo
+
 ## [3.4.0] - 2024-07-29
 ### Changed
 - Use GitVersion v5 docker image instead of relying on whatever version is installed in build environment
