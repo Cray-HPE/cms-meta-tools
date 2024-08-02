@@ -2,7 +2,7 @@
  *
  *  MIT License
  *
- *  (C) Copyright 2021-2022 Hewlett Packard Enterprise Development LP
+ *  (C) Copyright 2021-2022, 2024 Hewlett Packard Enterprise Development LP
  *
  *  Permission is hereby granted, free of charge, to any person obtaining a
  *  copy of this software and associated documentation files (the "Software"),
@@ -26,6 +26,7 @@
 
 def call() {
     withCredentials([gitUsernamePassword(credentialsId: 'jenkins-algol60-cray-hpe-github-integration')]) {
-        sh 'git clone --depth 1 --no-single-branch https://github.com/Cray-HPE/cms-meta-tools.git ./cms_meta_tools'
+        sh 'git clone --depth 1 --branch master --no-single-branch https://github.com/Cray-HPE/cms-meta-tools.git ./cms_meta_tools'
+        sh 'git -C ./cms_meta_tools log -n 1'
     }
 }
