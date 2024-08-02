@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Pull down latest commits after cloning
+
 ## [3.5.0] - 2024-08-02
 ### Changed
 - Modify `git_info` tool to allow for Dockerfiles that have uppercase `as` in their FROM lines

@@ -28,5 +28,7 @@ def call() {
     withCredentials([gitUsernamePassword(credentialsId: 'jenkins-algol60-cray-hpe-github-integration')]) {
         sh 'git clone --depth 1 --no-single-branch https://github.com/Cray-HPE/cms-meta-tools.git ./cms_meta_tools'
         sh 'git -C ./cms_meta_tools log -n 1'
+        sh 'git -C ./cms_meta_tools pull'
+        sh 'git -C ./cms_meta_tools log -n 1'
     }
 }
