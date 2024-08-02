@@ -157,10 +157,10 @@ while read vars; do
         [ -n "$clist" ] || 
             err_exit "No container names specified for dockerfile $target"
         for cname in $clist ; do
-            grep -Eq "^FROM .* as $cname[[:space:]]*$" "$target" ||
+            grep -Eq "^FROM .* (as|AS) $cname[[:space:]]*$" "$target" ||
                 err_exit "No FROM line for $cname found in $target"
             info "Adding line to copy git metadata into $cname in $target"
-            sed_diff_replace "$target" "$TMPFILE" "/^FROM .* as $cname[[:space:]]*$/r ${DOCKERCOPY}"
+            sed_diff_replace "$target" "$TMPFILE" "/^FROM .* \(as\|AS\) $cname[[:space:]]*$/r ${DOCKERCOPY}"
         done
     elif [ "$type" = specfile ]; then
         if ! grep -Eq "^%changelog[[:space:]]*$" "$target" ; then
