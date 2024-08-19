@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.5.2] - 2024-08-19
+### Added
+- Create generic `cloneGitRepo` script.
+
+### Changed
+- Modify `CloneCMSMetaTools` script to use new `cloneGitRepo` script.
+
 ## [3.5.1] - 2024-08-02
 ### Changed
 - Checkout `master` branch when cloning

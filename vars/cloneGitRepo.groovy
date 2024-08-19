@@ -24,7 +24,23 @@
  *
  */
 
-def call() {
-    cloneGitRepo('https://github.com/Cray-HPE/cms-meta-tools.git', targetDirectoryName: './cms_meta_tools')
-    sh 'git -C ./cms_meta_tools log -n 1'
+def call(Map userConfig = [:], String repoUrl) {
+    def defaults = [
+        branchName: "master",
+        targetDirectoryName: "",
+        gitCloneArgs: "--depth 1 --no-single-branch"
+    ]
+    def config = defaults + userConfig
+
+    def gitCloneCmd = "git clone ${config.gitCloneArgs}"
+    if (config.branchName != "") {
+        gitCloneCmd += " --branch '${config.branchName}'"
+    }
+    gitCloneCmd += " '${repoUrl}'"
+    if (config.targetDirectoryName != "") {
+        gitCloneCmd += " '${config.targetDirectoryName}'"
+    }
+    withCredentials([gitUsernamePassword(credentialsId: 'jenkins-algol60-cray-hpe-github-integration')]) {
+        sh gitCloneCmd
+    }
 }
