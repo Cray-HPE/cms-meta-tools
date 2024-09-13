@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.5.3] - 2024-09-13
+### Changed
+- Don't install Python modules from artifactory
+
 ## [3.5.2] - 2024-08-19
 ### Added
 - Create generic `cloneGitRepo` script.
