@@ -1,7 +1,7 @@
 #
 # MIT License
 #
-# (C) Copyright 2021-2022 Hewlett Packard Enterprise Development LP
+# (C) Copyright 2021-2022, 2024 Hewlett Packard Enterprise Development LP
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -69,8 +69,8 @@ function pyyaml_pip3_install
     # Assumes PYMODDIR has been set
     pip3 install "$@" \
         --no-cache-dir \
-        --trusted-host arti.hpc.amslabs.hpecorp.net \
-        --index-url https://arti.hpc.amslabs.hpecorp.net:443/artifactory/api/pypi/pypi-remote/simple \
+        #--trusted-host arti.hpc.amslabs.hpecorp.net \
+        #--index-url https://arti.hpc.amslabs.hpecorp.net:443/artifactory/api/pypi/pypi-remote/simple \
         --ignore-installed \
         --target="$PYMODDIR" \
         --upgrade 1>&2
