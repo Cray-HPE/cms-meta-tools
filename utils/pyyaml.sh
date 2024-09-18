@@ -67,10 +67,10 @@ function pyyaml_pip3_install
 {
     # Usage: pyyaml_pip3_install <module> [<module>] ...
     # Assumes PYMODDIR has been set
+    #--trusted-host arti.hpc.amslabs.hpecorp.net \
+    #--index-url https://arti.hpc.amslabs.hpecorp.net:443/artifactory/api/pypi/pypi-remote/simple \
     pip3 install "$@" \
         --no-cache-dir \
-        #--trusted-host arti.hpc.amslabs.hpecorp.net \
-        #--index-url https://arti.hpc.amslabs.hpecorp.net:443/artifactory/api/pypi/pypi-remote/simple \
         --ignore-installed \
         --target="$PYMODDIR" \
         --upgrade 1>&2
