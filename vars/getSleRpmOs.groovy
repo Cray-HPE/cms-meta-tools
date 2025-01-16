@@ -24,18 +24,7 @@
  *
  */
 
-def call(Map userConfig = [:]) {
-    def defaults = [
-        sleVersion: "",
-    ]
-    def config = defaults + userConfig
-
-    def sleVersion = config.sleVersion
-
-    if (sleVersion == "") {
-        sleVersion = getSleVersion()
-    }
-
+def call(String sleVersion) {
     def sles_version_parts = "${sleVersion}".tokenize('.')
     def sles_major = "${sles_version_parts[0]}"
     def sles_minor = "${sles_version_parts[1]}"
