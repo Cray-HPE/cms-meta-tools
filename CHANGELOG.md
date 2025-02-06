@@ -6,9 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
 ### Added
 - Created `buildCsmRpms`, `runCMTScript`, and `copyCMTFiles` groovy scripts
 - Created `build_rpms.sh` script
+- Created `publishCsmDockerImageIgnoreSnykPythonWerkzeug6808933` to ignore
+  [`SNYK-PYTHON-WERKZEUG-6808933`](https://security.snyk.io/vuln/SNYK-PYTHON-WERKZEUG-6808933)
+  when publishing a Docker image.
 
 ## [3.5.3] - 2024-09-13
 ### Changed
