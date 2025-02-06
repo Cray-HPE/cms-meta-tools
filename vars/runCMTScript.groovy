@@ -29,11 +29,13 @@ def call(String file, String... args) {
     tmpDir = sh(returnStdout: true, script: 'mktemp -d -p .').trim()
     copyCMTFiles(tmpDir, file)
     def exeFile = "${tmpDir}/${file}"
-    command="'${exeFile}'"
+    def command=["'${exeFile}'"]
     args.each { arg ->
         echo "(debug) arg=${arg} command: ${command}"
-        command+=" '${arg}'"
+        command.add("'${arg}'")
     }
-    echo "Running command: ${command}"    
-    sh "chmod -v +x '${exeFile}' && ${command} && rm -rvf '${tmpDir}'"
+    echo "(debug) arg=${arg} command: ${command}"
+    def commandString = command.join(" ")
+    echo "Running command: ${commandString}"
+    sh "chmod -v +x '${exeFile}' && ${commandString} && rm -rvf '${tmpDir}'"
 }
