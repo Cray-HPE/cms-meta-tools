@@ -37,27 +37,40 @@
 def call(Map params = [:]) {
     if(!params.name) {
         error("Missing name")
+    } else {
+        echo "(debug) name=${params.name}"
     }
 
     if(!params.version) {
         error("Missing version")
+    } else {
+        echo "(debug) version=${params.version}"
     }
 
     if(!params.sourceTarPath) {
         error("Missing sourceTarPath")
+    } else {
+        echo "(debug) sourceTarPath=${params.sourceTarPath}"
     }
 
     if(!params.specFileBasename) {
         error("Missing specFileBasename")
+    } else {
+        echo "(debug) specFileBasename=${params.specFileBasename}"
     }
 
     if(!params.buildReldir) {
         error("Missing buildReldir")
+    } else {
+        echo "(debug) buildReldir=${params.buildReldir}"
     }
 
     def scriptArgs = []
+    echo "(debug) scriptArgs = ${scriptArgs}"
     if(params.arch) {
+        echo "(debug) arch=${params.arch}"
         scriptArgs.addAll(["--arch", params.arch])
+        echo "(debug) scriptArgs = ${scriptArgs}"
     }
 
     scriptArgs.addAll([params.buildReldir, params.name, params.version, params.sourceTarPath, params.specFileBasename])

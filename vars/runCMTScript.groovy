@@ -25,11 +25,13 @@
  */
 
 def call(String file, String... args) {
+    echo "(debug) file = ${file}, args = ${args}"
     tmpDir = sh(returnStdout: true, script: 'mktemp -d -p .').trim()
     copyCMTFiles(tmpDir, file)
     def exeFile = "${tmpDir}/${file}"
     command="'${exeFile}'"
     args.each { arg ->
+        echo "(debug) arg=${arg} command: ${command}"
         command+=" '${arg}'"
     }
     echo "Running command: ${command}"    
