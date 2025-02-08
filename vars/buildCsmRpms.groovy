@@ -29,17 +29,17 @@ def call(Map params = [:]) {
         if ((params.functionVersion == 'v1') || (params.functionVersion == '1')) {
             echo "Calling buildCsmRpmsV1 (explicit)"
             buildCsmRpmsV1(params)
-        }
-        if ((params.functionVersion == 'v2') || (params.functionVersion == '2')) {
+        } else if ((params.functionVersion == 'v2') || (params.functionVersion == '2')) {
             echo "Calling buildCsmRpmsV2 (explicit)"
             buildCsmRpmsV2(params)
+        } else {
+            error "Invalid version specified: '${params.functionVersion}'"
         }
-        error "Invalid version specified: '${params.functionVersion}'"
-    }
-    if(!params.outputReldir) {
+    } else if(!params.outputReldir) {
         echo "Calling buildCsmRpmsV1 (implicit)"
         buildCsmRpmsV1(params)
+    } else {
+        echo "Calling buildCsmRpmsV2 (implicit)"
+        buildCsmRpmsV2(params)
     }
-    echo "Calling buildCsmRpmsV2 (implicit)"
-    buildCsmRpmsV2(params)
 }
