@@ -25,16 +25,16 @@
  */
 
 def call(Map params = [:]) {
-    if (params.version) {
-        if ((params.version == 'v1') || (params.version == '1')) {
+    if (params.functionVersion) {
+        if ((params.functionVersion == 'v1') || (params.functionVersion == '1')) {
             echo "Calling buildCsmRpmsV1 (explicit)"
             buildCsmRpmsV1(params)
         }
-        if ((params.version == 'v2') || (params.version == '2')) {
+        if ((params.functionVersion == 'v2') || (params.functionVersion == '2')) {
             echo "Calling buildCsmRpmsV2 (explicit)"
             buildCsmRpmsV2(params)
         }
-        error "Invalid version specified: '${params.version}'"
+        error "Invalid version specified: '${params.functionVersion}'"
     }
     if(!params.outputReldir) {
         echo "Calling buildCsmRpmsV1 (implicit)"
