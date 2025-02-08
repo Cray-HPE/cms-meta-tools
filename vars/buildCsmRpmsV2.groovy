@@ -24,22 +24,44 @@
  *
  */
 
+/*
+ * params: 
+ * sourceTarPath (required)
+ * specFileBasename (required)
+ * outputReldir (required)
+ * arch
+ */
+
 def call(Map params = [:]) {
-    if (params.version) {
-        if ((params.version == 'v1') || (params.version == '1')) {
-            echo "Calling buildCsmRpmsV1 (explicit)"
-            buildCsmRpmsV1(params)
-        }
-        if ((params.version == 'v2') || (params.version == '2')) {
-            echo "Calling buildCsmRpmsV2 (explicit)"
-            buildCsmRpmsV2(params)
-        }
-        error "Invalid version specified: '${params.version}'"
+    if(!params.sourceTarPath) {
+        error("Missing sourceTarPath")
+    } else {
+        echo "(debug) sourceTarPath=${params.sourceTarPath}"
     }
+
+    if(!params.specFileBasename) {
+        error("Missing specFileBasename")
+    } else {
+        echo "(debug) specFileBasename=${params.specFileBasename}"
+    }
+
     if(!params.outputReldir) {
-        echo "Calling buildCsmRpmsV1 (implicit)"
-        buildCsmRpmsV1(params)
+        error("Missing outputReldir")
+    } else {
+        echo "(debug) outputReldir=${params.outputReldir}"
     }
-    echo "Calling buildCsmRpmsV2 (implicit)"
-    buildCsmRpmsV2(params)
+
+    def scriptArgs = []
+    echo "(debug) scriptArgs = ${scriptArgs}"
+    if(params.arch) {
+        echo "(debug) arch=${params.arch}"
+        scriptArgs.addAll(["--arch", params.arch])
+        echo "(debug) scriptArgs = ${scriptArgs}"
+    }
+
+    scriptArgs.addAll([params.outputReldir, params.sourceTarPath, params.specFileBasename])
+
+    echo "scriptArgs = ${scriptArgs}"
+
+    runCMTScript("build_rpm_v2.sh", *scriptArgs)
 }
