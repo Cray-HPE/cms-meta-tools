@@ -110,7 +110,7 @@ cp -v "${spec_file_path}" "${BUILD_DIR}/SPECS/"
 #ls -al "${BUILD_DIR}/SPECS/${spec_file_base}"
 
 # Create source tarball
-tar -C "${UNTAR_DIR}" --transform "flags=r;s,^,/${SOURCE_NAME}/," --remove-files -cvjf "${SOURCE_PATH}" .
+tar -C "${UNTAR_DIR}" --transform "flags=r;s,^,/${SOURCE_NAME}/," -cvjf "${SOURCE_PATH}" .
 
 #ls -al "${BUILD_DIR}/SPECS/${spec_file_base}"
 
@@ -128,7 +128,7 @@ cp -v "${BUILD_DIR}/SRPMS/"*.rpm "${OUT_DIR}/SRPMS"
 #ls -al "${BUILD_DIR}/SPECS/${spec_file_base}"
 
 # Build main RPM
-rpmbuild -ta "${SOURCE_PATH}" --target "${RPM_ARCH}" --define "_topdir ${BUILD_DIR}"
+rpmbuild -ba "${spec_file_path}" --target "${RPM_ARCH}" --define "_topdir ${BUILD_DIR}"
 cp -v "${BUILD_DIR}/RPMS/${RPM_ARCH}"/*.rpm "${MAIN_BUILD_DIR}/RPMS/${RPM_ARCH}"
 
 popd
