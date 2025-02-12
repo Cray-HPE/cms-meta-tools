@@ -107,10 +107,8 @@ SOURCE_PATH="${BUILD_DIR}/SOURCES/${SOURCE_BASENAME}"
 mkdir -pv "${OUT_DIR}/RPMS/${RPM_ARCH}" "${OUT_DIR}/SRPMS" "${BUILD_DIR}/SRPMS" "${BUILD_DIR}/SPECS" "${BUILD_DIR}/SOURCES"
 cp -v "${spec_file_path}" "${BUILD_DIR}/SPECS/"
 
-pushd "${UNTAR_DIR}"
-
 # Create source tarball
-tar --transform "flags=r;s,^,/${SOURCE_NAME}/," --remove-files -cvjf "${SOURCE_PATH}" .
+tar -C "${UNTAR_DIR}" --transform "flags=r;s,^,/${SOURCE_NAME}/," --remove-files -cvjf "${SOURCE_PATH}" .
 
 pushd "${BUILD_DIR}"
 
