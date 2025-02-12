@@ -117,7 +117,7 @@ rpmbuild -ts "${SOURCE_PATH}" --target "${RPM_ARCH}" --define "_topdir ${BUILD_D
 cp -v "${BUILD_DIR}/SRPMS/"*.rpm "${OUT_DIR}/SRPMS"
 
 # Build main RPM
-rpmbuild -ba "${SPEC_FILE}" --target "${RPM_ARCH}" --define "_topdir ${BUILD_DIR}"
+rpmbuild -ba "${BUILD_DIR}/SPECS/${SPEC_FILE}" --target "${RPM_ARCH}" --define "_topdir ${BUILD_DIR}"
 cp -v "${BUILD_DIR}/RPMS/${RPM_ARCH}"/*.rpm "${MAIN_BUILD_DIR}/RPMS/${RPM_ARCH}"
 
 popd
