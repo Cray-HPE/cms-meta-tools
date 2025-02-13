@@ -26,9 +26,11 @@
 
 /*
  * params: 
+ * name (required) (RPM name)
+ * version (required) (RPM version)
  * sourceTarPath (required)
- * specFileBasename (required)
  * outputReldir (required)
+ * specFileBasename (required)
  * arch
  */
 
@@ -39,10 +41,16 @@ def call(Map params = [:]) {
         echo "(debug) sourceTarPath=${params.sourceTarPath}"
     }
 
-    if(!params.specFileBasename) {
-        error("Missing specFileBasename")
+    if(!params.name) {
+        error("Missing name")
     } else {
-        echo "(debug) specFileBasename=${params.specFileBasename}"
+        echo "(debug) name=${params.name}"
+    }
+
+    if(!params.version) {
+        error("Missing version")
+    } else {
+        echo "(debug) version=${params.version}"
     }
 
     if(!params.outputReldir) {
@@ -50,6 +58,13 @@ def call(Map params = [:]) {
     } else {
         echo "(debug) outputReldir=${params.outputReldir}"
     }
+
+    if(!params.specFileBasename) {
+        error("Missing specFileBasename")
+    } else {
+        echo "(debug) specFileBasename=${params.specFileBasename}"
+    }
+
 
     def scriptArgs = []
     echo "(debug) scriptArgs = ${scriptArgs}"
@@ -59,7 +74,7 @@ def call(Map params = [:]) {
         echo "(debug) scriptArgs = ${scriptArgs}"
     }
 
-    scriptArgs.addAll([params.outputReldir, params.sourceTarPath, params.specFileBasename])
+    scriptArgs.addAll([params.outputReldir, params.name, params.version, params.sourceTarPath, params.specFileBasename])
 
     echo "scriptArgs = ${scriptArgs}"
 

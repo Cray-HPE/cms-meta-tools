@@ -25,7 +25,7 @@
 
 set -exuo pipefail
 
-# Usage: build_rpm.sh [--arch <rpm-arch>] <outdir> <source_tar> <spec_file_basename>
+# Usage: build_rpm.sh [--arch <rpm-arch>] <outdir> <rpm_name> <rpm_version> <source_tar> <spec_file_basename>
 #
 # output directory must be a relative path
 #
@@ -61,11 +61,27 @@ while [[ $# -gt 0 ]]; do
   shift 2
 done
 
-[[ $# -eq 3 ]] || err_exit "Exactly 3 positional arguments required, but received $#. Invalid argument(s): $*"
+[[ $# -eq 5 ]] || err_exit "Exactly 5 positional arguments required, but received $#. Invalid argument(s): $*"
 
 [[ -n $1 ]] || err_exit "Output directory may not be blank"
 [[ ! $1 =~ ^/ ]] || err_exit "Output directory may not begin with /. Invalid: '$1'"
 out_reldir="$1"
+
+shift
+
+# Just make sure the RPM name isn't blank and doesn't include any whitespace, >, <, or =
+name_regex='^[^[:space:]<>=]+$'
+[[ -n $1 ]] || err_exit "RPM name may not be blank"
+[[ $1 =~ ${name_regex} ]] || err_exit "Specified RPM name ('$1') contains illegal characters (whitespace, <, >, or =)"
+RPM_NAME="$1"
+
+shift
+
+# Version/Release strings allowed to have ASCII letters (a-zA-Z), digits (0-9) and separators (._+~)
+[[ -n $1 ]] || err_exit "RPM version may not be blank"
+ver_regex='^[._+~0-9a-zA-Z]+$'
+[[ $1 =~ ${ver_regex} ]] || err_exit "Specified RPM version ('$1') contains illegal characters"
+RPM_VERSION="$1"
 
 shift
 
@@ -88,7 +104,8 @@ else
 fi
 
 echo "out_reldir='${out_reldir}' spec_file_base='${spec_file_base}' source_tar='${source_tar}' RPM_ARCH='${RPM_ARCH}'"
-export RPM_RACH
+echo "RPM_NAME='${RPM_NAME}' RPM_VERSION='${RPM_VERSION}'"
+export RPM_ARCH RPM_NAME RPM_VERSION
 
 UNTAR_DIR=$(mktemp -d $(pwd)/.tmp.untar.XXX)
 BUILD_DIR=$(mktemp -d $(pwd)/.tmp.build.XXX)
@@ -100,7 +117,7 @@ spec_file_path="${UNTAR_DIR}/${spec_file_base}"
 
 OUT_DIR="$(pwd)/${out_reldir}"
 
-SOURCE_NAME=$(basename "${BUILD_DIR}")
+SOURCE_NAME="${RPM_NAME}-${RPM_VERSION}"
 export SOURCE_BASENAME="${SOURCE_NAME}.tar.bz2"
 SOURCE_PATH="${BUILD_DIR}/SOURCES/${SOURCE_BASENAME}"
 
