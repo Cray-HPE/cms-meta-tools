@@ -25,8 +25,9 @@
 
 set -exuo pipefail
 
-# Usage: build_rpm.sh [--arch <rpm-arch>]
-#                     <build-reldir> <rpm_name> <rpm_version> <source_tar> <spec_file_basename>
+# Usage: build_rpm.sh [--arch <rpm-arch>] <outdir> <rpm_name> <rpm_version> <source_tar> <spec_file_basename>
+#
+# output directory must be a relative path
 #
 # If --arch is not specified, it will be determined from the build environment.
 #
@@ -60,13 +61,11 @@ while [[ $# -gt 0 ]]; do
   shift 2
 done
 
-num_required_positional_args=5
-[[ $# -le ${num_required_positional_args} ]] || err_exit "Too many arguments. Unrecognized argument: $1"
-[[ $# -eq ${num_required_positional_args} ]] || err_exit "Too few arguments specified"
+[[ $# -eq 5 ]] || err_exit "Exactly 5 positional arguments required, but received $#. Invalid argument(s): $*"
 
-[[ -n $1 ]] || err_exit "Build reldir may not be blank"
-[[ ! $1 =~ ^/ ]] || err_exit "Build reldir may not begin with /. Invalid: '$1'"
-BUILD_RELDIR="$1"
+[[ -n $1 ]] || err_exit "Output directory may not be blank"
+[[ ! $1 =~ ^/ ]] || err_exit "Output directory may not begin with /. Invalid: '$1'"
+out_reldir="$1"
 
 shift
 
@@ -98,50 +97,48 @@ spec_file_base="$1"
 
 if [[ -z ${arch} ]]; then
   echo "No arch specified. Getting default value"
-  arch=$(uname -i)
-  valid_arch "${arch}" || err_exit "Invalid arch value reported by unamne -i: '${arch}'"
+  RPM_ARCH=$(uname -i)
+  valid_arch "${RPM_ARCH}" || err_exit "Invalid arch value reported by unamne -i: '${RPM_ARCH}'"
+else
+  RPM_ARCH="${arch}"
 fi
 
-RPM_ARCH="${arch}"
-SPEC_FILE="${spec_file_base}"
+echo "out_reldir='${out_reldir}' spec_file_base='${spec_file_base}' source_tar='${source_tar}' RPM_ARCH='${RPM_ARCH}'"
+echo "RPM_NAME='${RPM_NAME}' RPM_VERSION='${RPM_VERSION}'"
+export RPM_ARCH RPM_NAME RPM_VERSION
 
-export SPEC_FILE RPM_NAME RPM_VERSION RPM_ARCH
+UNTAR_DIR=$(mktemp -d $(pwd)/.tmp.untar.XXX)
+BUILD_DIR=$(mktemp -d $(pwd)/.tmp.build.XXX)
 
-echo "RPM_NAME='${RPM_NAME}' RPM_VERSION='${RPM_VERSION}' RPM_ARCH='${RPM_ARCH}' BUILD_RELDIR='${BUILD_RELDIR}'"
-echo "SPEC_FILE='${SPEC_FILE}' source_tar='${source_tar}'"
+tar -C "${UNTAR_DIR}" -xvf "${source_tar}"
+spec_file_path="${UNTAR_DIR}/${spec_file_base}"
+[[ -e ${spec_file_path} ]] || err_exit "Spec file (${spec_file_base}) does not exist in source tarfile (${source_tar})"
+[[ -f ${spec_file_path} ]] || err_exit "Spec file (${spec_file_base}) exists in source tarfile (${source_tar}) but is not a regular file"
 
-reldir=$(echo ".tmp.${RPM_ARCH}.${RPM_NAME}.${RPM_VERSION}" | tr '/' '_')
-temp_build_root=$(mktemp -d $(pwd)/${reldir}.XXX)
+OUT_DIR="$(pwd)/${out_reldir}"
 
-tar -C "${temp_build_root}" -xvf "${source_tar}"
-spec_file_path="${temp_build_root}/${SPEC_FILE}"
-[[ -e ${spec_file_path} ]] || err_exit "Spec file (${SPEC_FILE}) does not exist in source tarfile (${source_tar})"
-[[ -f ${spec_file_path} ]] || err_exit "Spec file (${SPEC_FILE}) exists in source tarfile (${source_tar}) but is not a regular file"
-
-MAIN_BUILD_DIR="$(pwd)/${BUILD_RELDIR}"
-
-BUILD_DIR="${temp_build_root}/${BUILD_RELDIR}"
 SOURCE_NAME="${RPM_NAME}-${RPM_VERSION}"
 export SOURCE_BASENAME="${SOURCE_NAME}.tar.bz2"
 SOURCE_PATH="${BUILD_DIR}/SOURCES/${SOURCE_BASENAME}"
 
-mkdir -pv "${BUILD_RELDIR}/RPMS/${RPM_ARCH}" "${BUILD_RELDIR}/SRPMS" "${BUILD_DIR}/SPECS" "${BUILD_DIR}/SOURCES"
-cp -v "${SPEC_FILE}" "${BUILD_DIR}/SPECS/"
-
-pushd "${temp_build_root}"
+mkdir -pv "${OUT_DIR}/RPMS/${RPM_ARCH}" "${OUT_DIR}/SRPMS" "${BUILD_DIR}/SRPMS" "${BUILD_DIR}/SPECS" "${BUILD_DIR}/SOURCES"
+cp -v "${spec_file_path}" "${BUILD_DIR}/SPECS/"
 
 # Create source tarball
-tar --transform "flags=r;s,^,/${SOURCE_NAME}/," --exclude ./dist -cvjf "${SOURCE_PATH}" .
+tar -C "${UNTAR_DIR}" --transform "flags=r;s,^,/${SOURCE_NAME}/," -cvjf "${SOURCE_PATH}" .
+
+pushd "${BUILD_DIR}"
 
 # Build SRC RPM
 rpmbuild -ts "${SOURCE_PATH}" --target "${RPM_ARCH}" --define "_topdir ${BUILD_DIR}"
-cp -v "${BUILD_DIR}/SRPMS/"*.rpm "${MAIN_BUILD_DIR}/SRPMS"
+
+cp -v "${BUILD_DIR}/SRPMS/"*.rpm "${OUT_DIR}/SRPMS"
 
 # Build main RPM
-rpmbuild -ba "${SPEC_FILE}" --target "${RPM_ARCH}" --define "_topdir ${BUILD_DIR}"
-cp -v "${BUILD_DIR}/RPMS/${RPM_ARCH}"/*.rpm "${MAIN_BUILD_DIR}/RPMS/${RPM_ARCH}"
+rpmbuild -ba "${spec_file_path}" --target "${RPM_ARCH}" --define "_topdir ${BUILD_DIR}"
+cp -v "${BUILD_DIR}/RPMS/${RPM_ARCH}"/*.rpm "${OUT_DIR}/RPMS/${RPM_ARCH}"
 
 popd
 
-# Cleanup temp dir
-rm -rfv "${temp_build_root}"
+# Cleanup temp dirs
+rm -rfv "${BUILD_DIR}" "${UNTAR_DIR}"

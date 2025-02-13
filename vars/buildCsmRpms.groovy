@@ -24,58 +24,22 @@
  *
  */
 
-/*
- * params: 
- * name (required)
- * version (required)
- * sourceTarPath (required)
- * specFileBasename (required)
- * buildReldir (required)
- * arch
- */
-
 def call(Map params = [:]) {
-    if(!params.name) {
-        error("Missing name")
+    if (params.functionVersion) {
+        if ((params.functionVersion == 'v1') || (params.functionVersion == '1')) {
+            echo "Calling buildCsmRpmsV1 (explicit)"
+            buildCsmRpmsV1(params)
+        } else if ((params.functionVersion == 'v2') || (params.functionVersion == '2')) {
+            echo "Calling buildCsmRpmsV2 (explicit)"
+            buildCsmRpmsV2(params)
+        } else {
+            error "Invalid version specified: '${params.functionVersion}'"
+        }
+    } else if(!params.outputReldir) {
+        echo "Calling buildCsmRpmsV1 (implicit)"
+        buildCsmRpmsV1(params)
     } else {
-        echo "(debug) name=${params.name}"
+        echo "Calling buildCsmRpmsV2 (implicit)"
+        buildCsmRpmsV2(params)
     }
-
-    if(!params.version) {
-        error("Missing version")
-    } else {
-        echo "(debug) version=${params.version}"
-    }
-
-    if(!params.sourceTarPath) {
-        error("Missing sourceTarPath")
-    } else {
-        echo "(debug) sourceTarPath=${params.sourceTarPath}"
-    }
-
-    if(!params.specFileBasename) {
-        error("Missing specFileBasename")
-    } else {
-        echo "(debug) specFileBasename=${params.specFileBasename}"
-    }
-
-    if(!params.buildReldir) {
-        error("Missing buildReldir")
-    } else {
-        echo "(debug) buildReldir=${params.buildReldir}"
-    }
-
-    def scriptArgs = []
-    echo "(debug) scriptArgs = ${scriptArgs}"
-    if(params.arch) {
-        echo "(debug) arch=${params.arch}"
-        scriptArgs.addAll(["--arch", params.arch])
-        echo "(debug) scriptArgs = ${scriptArgs}"
-    }
-
-    scriptArgs.addAll([params.buildReldir, params.name, params.version, params.sourceTarPath, params.specFileBasename])
-
-    echo "scriptArgs = ${scriptArgs}"
-
-    runCMTScript("build_rpm.sh", *scriptArgs)
 }
